@@ -165,17 +165,8 @@ export function WalletAuthProvider({ children }: WalletAuthProviderProps) {
     }
   }, [user, connected, publicKey])
 
-  useEffect(() => {
-    if (!connected || !publicKey) return
-    if (isAuthenticated) return
-    if (isLoading) return
-
-    const connectedAddress = publicKey.toBase58()
-    if (lastAutoAuthAddress.current === connectedAddress) return
-
-    lastAutoAuthAddress.current = connectedAddress
-    void loginWithWallet().catch(() => undefined)
-  }, [connected, publicKey, isAuthenticated, isLoading, loginWithWallet])
+  // Do not auto-prompt "Sign in" message when wallet connects; user signs only when
+  // they explicitly sign in (e.g. to record progress) or when enrolling sends a tx.
 
   useEffect(() => {
     if (!connected || !publicKey || !sendTransaction) return

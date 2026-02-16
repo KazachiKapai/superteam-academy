@@ -50,7 +50,7 @@ export async function POST(request: Request) {
     )
   }
 
-  await completeLessonOnChain(userPk, slug)
+  const completeTxSignature = await completeLessonOnChain(userPk, slug)
   const enrollmentAfter = await fetchEnrollment(userPk, slug)
   const lessonsCompleted = Number(enrollmentAfter?.lessonsCompleted ?? 0)
 
@@ -58,9 +58,10 @@ export async function POST(request: Request) {
   recordLessonComplete(user.walletAddress, courseTitle, body.lessonId ?? undefined)
 
   let finalized = false
+  let finalizeTxSignature: string | null = null
   if (lessonsCompleted >= meta.lessonsCount) {
     try {
-      await finalizeCourseOnChain(userPk, slug)
+      finalizeTxSignature = await finalizeCourseOnChain(userPk, slug)
       finalized = true
       recordCourseFinalized(user.walletAddress, courseTitle)
     } catch {
@@ -76,6 +77,8 @@ export async function POST(request: Request) {
       lessonsCompleted,
       lessonsTotal: meta.lessonsCount,
       finalized,
+      completeTxSignature,
+      finalizeTxSignature,
     },
     { status: 200 },
   )

@@ -19,6 +19,7 @@ import {
   Menu,
   X,
   BookOpen,
+  ExternalLink,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -31,6 +32,8 @@ import {
 } from "@/components/ui/resizable"
 import { CodeEditor } from "./code-editor"
 import type { Course, Lesson } from "@/lib/mock-data"
+import { useWalletAuth } from "@/components/providers/wallet-auth-provider"
+import { ACADEMY_CLUSTER } from "@/lib/generated/academy-program"
 
 const lessonIcons = {
   video: Play,
@@ -55,11 +58,15 @@ export function LessonView({
   nextLesson,
   enrolledOnChain = false,
 }: LessonViewProps) {
+  const { loginWithWallet } = useWalletAuth()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [showHint, setShowHint] = useState(false)
   const [showSolution, setShowSolution] = useState(false)
   const [isCompleting, setIsCompleting] = useState(false)
   const [completeError, setCompleteError] = useState<string | null>(null)
+  const [needsSignIn, setNeedsSignIn] = useState(false)
+  const [completeTxSignature, setCompleteTxSignature] = useState<string | null>(null)
+  const [redirectTo, setRedirectTo] = useState<string | null>(null)
 
   const allLessons = course.modules.flatMap((m) => m.lessons)
   const completed = allLessons.filter((l) => l.completed).length
@@ -72,6 +79,7 @@ export function LessonView({
       setCompleteError("You must enroll on-chain before completing lessons.")
       return
     }
+    setNeedsSignIn(false)
     setIsCompleting(true)
     setCompleteError(null)
     try {
@@ -81,9 +89,23 @@ export function LessonView({
         credentials: "include",
         body: JSON.stringify({ slug: course.slug, lessonId: lesson.id }),
       })
+      if (response.status === 401) {
+        setNeedsSignIn(true)
+        setCompleteError("Sign in once to record your progress.")
+        return
+      }
+      const payload = (await response.json().catch(() => null)) as {
+        error?: string
+        completeTxSignature?: string
+        finalizeTxSignature?: string | null
+      } | null
       if (!response.ok) {
-        const payload = (await response.json().catch(() => null)) as { error?: string } | null
         throw new Error(payload?.error ?? "Failed to complete lesson on-chain.")
+      }
+      if (payload?.completeTxSignature) {
+        setCompleteTxSignature(payload.completeTxSignature)
+        setRedirectTo(nextLesson ? `/courses/${course.slug}/lessons/${nextLesson.id}` : `/courses/${course.slug}`)
+        return
       }
 
       if (nextLesson) {
@@ -246,14 +268,34 @@ export function LessonView({
                 ) : (
                   <div />
                 )}
-                <Button
-                  onClick={handleMarkComplete}
-                  disabled={isCompleting}
-                  className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2"
-                >
-                  <CheckCircle2 className="h-4 w-4" />
-                  {isCompleting ? "Submitting..." : "Mark Complete"}
-                </Button>
+                {completeTxSignature ? (
+                  <div className="flex flex-col gap-2">
+                    <p className="text-sm text-primary font-medium">Recorded on-chain (backend signed — no wallet popup)</p>
+                    <a
+                      href={`https://explorer.solana.com/tx/${completeTxSignature}${ACADEMY_CLUSTER === "devnet" ? "?cluster=devnet" : ""}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-xs text-primary hover:underline inline-flex items-center gap-1"
+                    >
+                      View transaction <ExternalLink className="h-3 w-3" />
+                    </a>
+                    <Button
+                      onClick={() => redirectTo && (window.location.href = redirectTo)}
+                      className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2"
+                    >
+                      {redirectTo?.includes("/lessons/") ? "Next lesson" : "Back to course"}
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    onClick={handleMarkComplete}
+                    disabled={isCompleting}
+                    className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2"
+                  >
+                    <CheckCircle2 className="h-4 w-4" />
+                    {isCompleting ? "Submitting..." : "Mark Complete"}
+                  </Button>
+                )}
                 {nextLesson ? (
                   <Link href={`/courses/${course.slug}/lessons/${nextLesson.id}`}>
                     <Button variant="outline" className="gap-2 border-border text-muted-foreground">
@@ -266,7 +308,19 @@ export function LessonView({
                 )}
               </div>
               {completeError ? (
-                <p className="mt-3 text-sm text-destructive">{completeError}</p>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <p className="text-sm text-destructive">{completeError}</p>
+                  {needsSignIn && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-primary text-primary hover:bg-primary/10"
+                      onClick={() => void loginWithWallet().then(() => setNeedsSignIn(false))}
+                    >
+                      Sign in
+                    </Button>
+                  )}
+                </div>
               ) : null}
             </div>
           </div>

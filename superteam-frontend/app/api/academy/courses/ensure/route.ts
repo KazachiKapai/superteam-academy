@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server"
-import { getAuthenticatedUser } from "@/lib/server/auth-adapter"
 import { ensureCourseOnChain } from "@/lib/server/academy-program"
 import { getCatalogCourseMeta } from "@/lib/server/academy-course-catalog"
 
@@ -8,11 +7,6 @@ type EnsureCourseBody = {
 }
 
 export async function POST(request: Request) {
-  const user = await getAuthenticatedUser()
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
-
   const body = (await request.json().catch(() => ({}))) as EnsureCourseBody
   const slug = body.slug?.trim()
   if (!slug) {

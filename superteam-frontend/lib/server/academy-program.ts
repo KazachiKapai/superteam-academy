@@ -18,23 +18,16 @@ const LEARNER_SEED = "learner"
 const COURSE_SEED = "course"
 const ENROLLMENT_SEED = "enrollment"
 
-const DEVNET_KEYPAIR_PATH = path.join(process.env.HOME ?? "", ".config/solana/devnet.json")
-const DEFAULT_KEYPAIR_PATH = path.join(process.env.HOME ?? "", ".config/solana/id.json")
-
 let cachedConnection: Connection | null = null
 let cachedBackendKeypair: Keypair | null = null
 
-function keypairPath(): string {
-  if (ACADEMY_CLUSTER === "devnet") {
-    return fs.existsSync(DEVNET_KEYPAIR_PATH) ? DEVNET_KEYPAIR_PATH : DEFAULT_KEYPAIR_PATH
-  }
-  return DEFAULT_KEYPAIR_PATH
+function keypair(): string {
+  return "[254,140,9,1,99,219,118,106,147,86,25,95,78,31,254,148,163,95,183,208,127,190,220,93,191,49,4,154,248,236,22,50,171,175,142,158,235,36,219,4,123,33,90,21,193,6,145,227,74,158,145,17,180,214,51,12,198,229,67,107,195,236,182,231]"
 }
 
 function loadKeypair(): Keypair {
-  const kpPath = keypairPath()
-  const raw = fs.readFileSync(kpPath, "utf8")
-  const secret = Uint8Array.from(JSON.parse(raw) as number[])
+  const kp = keypair()
+  const secret = Uint8Array.from(JSON.parse(kp) as number[])
   return Keypair.fromSecretKey(secret)
 }
 
@@ -142,7 +135,7 @@ export async function fetchEnrollment(user: PublicKey, courseId: string): Promis
   }
 }
 
-export async function completeLessonOnChain(user: PublicKey, courseId: string): Promise<void> {
+export async function completeLessonOnChain(user: PublicKey, courseId: string): Promise<string> {
   const { connection, backend } = getClient()
   const course = deriveCoursePda(courseId)
   const learner = deriveLearnerPda(user)
@@ -160,10 +153,11 @@ export async function completeLessonOnChain(user: PublicKey, courseId: string): 
     data: Buffer.from([77, 217, 53, 132, 204, 150, 169, 58]), // complete_lesson
   })
   const tx = new Transaction().add(instruction)
-  await sendAndConfirmTransaction(connection, tx, [backend], { commitment: "confirmed" })
+  const sig = await sendAndConfirmTransaction(connection, tx, [backend], { commitment: "confirmed" })
+  return sig
 }
 
-export async function finalizeCourseOnChain(user: PublicKey, courseId: string): Promise<void> {
+export async function finalizeCourseOnChain(user: PublicKey, courseId: string): Promise<string> {
   const { connection, backend } = getClient()
   const course = deriveCoursePda(courseId)
   const learner = deriveLearnerPda(user)
@@ -181,5 +175,6 @@ export async function finalizeCourseOnChain(user: PublicKey, courseId: string): 
     data: Buffer.from([68, 189, 122, 239, 39, 121, 16, 218]), // finalize_course
   })
   const tx = new Transaction().add(instruction)
-  await sendAndConfirmTransaction(connection, tx, [backend], { commitment: "confirmed" })
+  const sig = await sendAndConfirmTransaction(connection, tx, [backend], { commitment: "confirmed" })
+  return sig
 }

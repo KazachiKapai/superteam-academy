@@ -16,6 +16,7 @@ import {
   Circle,
   ChevronDown,
   ArrowRight,
+  ExternalLink,
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -29,6 +30,7 @@ import {
 } from "@/components/ui/collapsible"
 import type { Course } from "@/lib/mock-data"
 import { sendEnrollCourse } from "@/lib/solana/enroll-course"
+import { ACADEMY_CLUSTER } from "@/lib/generated/academy-program"
 
 const lessonIcons = {
   video: Play,
@@ -58,6 +60,7 @@ export function CourseDetail({
   const { publicKey, sendTransaction } = useWallet()
   const [isEnrolling, setIsEnrolling] = useState(false)
   const [enrollError, setEnrollError] = useState<string | null>(null)
+  const [enrollTxSignature, setEnrollTxSignature] = useState<string | null>(null)
 
   const totalLessons = course.modules.reduce((acc, m) => acc + m.lessons.length, 0)
   const completedLessons = course.modules.reduce(
@@ -96,8 +99,8 @@ export function CourseDetail({
         throw new Error(payload?.error ?? "Failed to ensure course on-chain.")
       }
 
-      await sendEnrollCourse(sendTransaction, publicKey.toBase58(), course.slug)
-      window.location.reload()
+      const sig = await sendEnrollCourse(sendTransaction, publicKey.toBase58(), course.slug)
+      setEnrollTxSignature(sig)
     } catch (error) {
       setEnrollError(error instanceof Error ? error.message : "Enrollment failed.")
     } finally {
@@ -200,17 +203,40 @@ export function CourseDetail({
                         Earn {course.xp} XP upon completion
                       </p>
                     </div>
-                    <Button
-                      onClick={handleEnroll}
-                      disabled={isEnrolling}
-                      className="w-full bg-primary text-primary-foreground hover:bg-primary/90 gap-2"
-                    >
-                      {isEnrolling ? "Enrolling..." : "Enroll Now"}
-                      <ArrowRight className="h-4 w-4" />
-                    </Button>
-                    {enrollError ? (
-                      <p className="mt-2 text-xs text-destructive">{enrollError}</p>
-                    ) : null}
+                    {enrollTxSignature ? (
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium text-primary">Enrolled on-chain</p>
+                        <a
+                          href={`https://explorer.solana.com/tx/${enrollTxSignature}${ACADEMY_CLUSTER === "devnet" ? "?cluster=devnet" : ""}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-xs text-primary hover:underline inline-flex items-center gap-1"
+                        >
+                          View transaction (Academy program) <ExternalLink className="h-3 w-3" />
+                        </a>
+                        <Button
+                          onClick={() => window.location.reload()}
+                          className="w-full bg-primary text-primary-foreground hover:bg-primary/90 gap-2 mt-2"
+                        >
+                          Continue
+                          <ArrowRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <>
+                        <Button
+                          onClick={handleEnroll}
+                          disabled={isEnrolling}
+                          className="w-full bg-primary text-primary-foreground hover:bg-primary/90 gap-2"
+                        >
+                          {isEnrolling ? "Enrolling..." : "Enroll Now"}
+                          <ArrowRight className="h-4 w-4" />
+                        </Button>
+                        {enrollError ? (
+                          <p className="mt-2 text-xs text-destructive">{enrollError}</p>
+                        ) : null}
+                      </>
+                    )}
                   </>
                 )}
                 <Separator className="my-4" />
