@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next"
 import { Inter, JetBrains_Mono } from "next/font/google"
 import "./globals.css"
+import { AppProviders } from "@/components/providers/app-providers"
 
 const _inter = Inter({ subsets: ["latin"], variable: "--font-inter" })
 const _jetbrains = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jetbrains" })
@@ -21,8 +22,10 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className="dark">
-      <body className="font-sans antialiased">{children}</body>
+    <html lang="en" suppressHydrationWarning>
+      <body className="font-sans antialiased">
+        <AppProviders>{children}</AppProviders>
+      </body>
     </html>
   )
 }

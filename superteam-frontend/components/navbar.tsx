@@ -2,6 +2,8 @@
 
 import Link from "next/link"
 import { useState } from "react"
+import { useWallet } from "@solana/wallet-adapter-react"
+import { useWalletModal } from "@solana/wallet-adapter-react-ui"
 import {
   BookOpen,
   LayoutDashboard,
@@ -13,11 +15,14 @@ import {
   Flame,
   Zap,
   Search,
+  LogOut,
+  Wallet,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { currentUser } from "@/lib/mock-data"
+import { useWalletAuth } from "@/components/providers/wallet-auth-provider"
 
 const navLinks = [
   { href: "/courses", label: "Courses", icon: BookOpen },
@@ -27,6 +32,12 @@ const navLinks = [
 
 export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false)
+  const { connected, publicKey } = useWallet()
+  const { setVisible } = useWalletModal()
+  const { isLoading, isAuthenticated, address, authError, loginWithWallet, logout } = useWalletAuth()
+
+  const connectedAddress = publicKey?.toBase58() ?? null
+  const activeAddress = address ?? connectedAddress
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-xl">
@@ -57,6 +68,50 @@ export function Navbar() {
 
         {/* Right side */}
         <div className="hidden items-center gap-3 md:flex">
+          {!connected ? (
+            <Button
+              variant="outline"
+              className="border-primary/30 text-primary hover:bg-primary/10"
+              onClick={() => setVisible(true)}
+            >
+              <Wallet className="mr-2 h-4 w-4" />
+              Connect Wallet
+            </Button>
+          ) : (
+            <>
+              <Badge variant="outline" className="border-primary/30 text-primary">
+                {shortAddress(activeAddress)}
+              </Badge>
+              {!isAuthenticated && isLoading ? (
+                <Badge variant="outline" className="border-border text-muted-foreground">
+                  Authorizing...
+                </Badge>
+              ) : !isAuthenticated ? (
+                <Button
+                  variant="outline"
+                  className="border-primary/30 text-primary hover:bg-primary/10"
+                  onClick={() => {
+                    void loginWithWallet().catch(() => undefined)
+                  }}
+                >
+                  Retry Auth
+                </Button>
+              ) : (
+                <Button
+                  variant="outline"
+                  className="border-primary/30 text-primary hover:bg-primary/10"
+                  disabled={isLoading}
+                  onClick={() => {
+                    void logout().catch(() => undefined)
+                  }}
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Logout
+                </Button>
+              )}
+            </>
+          )}
+
           <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
             <Search className="h-4 w-4" />
           </Button>
@@ -103,6 +158,50 @@ export function Navbar() {
       {/* Mobile Menu */}
       {mobileOpen && (
         <div className="border-t border-border bg-background px-4 py-4 md:hidden">
+          <div className="mb-4 flex flex-col gap-2 border-b border-border pb-4">
+            {!connected ? (
+              <Button
+                variant="outline"
+                className="w-full border-primary/30 text-primary hover:bg-primary/10"
+                onClick={() => setVisible(true)}
+              >
+                <Wallet className="mr-2 h-4 w-4" />
+                Connect Wallet
+              </Button>
+            ) : !isAuthenticated ? (
+              isLoading ? (
+                <Badge variant="outline" className="w-full justify-center border-border text-muted-foreground py-2">
+                  Authorizing wallet...
+                </Badge>
+              ) : (
+                <Button
+                  variant="outline"
+                  className="w-full border-primary/30 text-primary hover:bg-primary/10"
+                  onClick={() => {
+                    void loginWithWallet().catch(() => undefined)
+                  }}
+                >
+                  Retry Auth
+                </Button>
+              )
+            ) : (
+              <Button
+                variant="outline"
+                className="w-full border-primary/30 text-primary hover:bg-primary/10"
+                disabled={isLoading}
+                onClick={() => {
+                  void logout().catch(() => undefined)
+                }}
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                Logout ({shortAddress(activeAddress)})
+              </Button>
+            )}
+            {authError && (
+              <p className="text-xs text-destructive">{authError}</p>
+            )}
+          </div>
+
           <div className="flex items-center gap-3 mb-4 pb-4 border-b border-border">
             <Avatar className="h-10 w-10 border border-primary/30">
               <AvatarFallback className="bg-primary/20 text-sm text-primary">
@@ -157,4 +256,9 @@ export function Navbar() {
       )}
     </header>
   )
+}
+
+function shortAddress(address: string | null): string {
+  if (!address) return "Wallet Connected"
+  return `${address.slice(0, 4)}...${address.slice(-4)}`
 }
