@@ -20,8 +20,14 @@ import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { OnChainLearnerCard } from "@/components/dashboard/onchain-learner-card"
-import { currentUser, courses, recentActivity, getStreakDays } from "@/lib/mock-data"
+import {
+  currentUser,
+  courses,
+  recentActivity,
+  getStreakDays,
+} from "@/lib/mock-data"
 import type { IdentitySnapshot } from "@/lib/identity/types"
+import { LeaderboardWidget } from "./leaderboard-widget"
 
 const badgeIcons: Record<string, typeof Zap> = {
   footprints: Footprints,
@@ -34,10 +40,16 @@ const badgeIcons: Record<string, typeof Zap> = {
   zap: Zap,
 }
 
-export function DashboardContent({ identity }: { identity?: IdentitySnapshot }) {
+export function DashboardContent({
+  identity,
+}: {
+  identity?: IdentitySnapshot
+}) {
   const profile = identity?.profile
-  const inProgressCourses = courses.filter((c) => c.progress > 0 && c.progress < 100)
-  const recommendedCourses = courses.filter((c) => c.progress === 0).slice(0, 2)
+  const inProgressCourses = courses.filter(
+    c => c.progress > 0 && c.progress < 100,
+  )
+  const recommendedCourses = courses.filter(c => c.progress === 0).slice(0, 2)
   const streakDays = getStreakDays(365)
   const heatmap = buildContributionHeatmap(streakDays)
 
@@ -50,7 +62,8 @@ export function DashboardContent({ identity }: { identity?: IdentitySnapshot }) 
             Welcome back, {(profile?.name ?? currentUser.name).split(" ")[0]}
           </h1>
           <p className="mt-1 text-muted-foreground">
-            Keep up the momentum! You{"'"}re on a {profile?.streak ?? currentUser.streak}-day streak.
+            Keep up the momentum! You{"'"}re on a{" "}
+            {profile?.streak ?? currentUser.streak}-day streak.
           </p>
         </div>
         <Link href="/courses">
@@ -100,18 +113,29 @@ export function DashboardContent({ identity }: { identity?: IdentitySnapshot }) 
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             <TrendingUp className="h-4 w-4 text-primary" />
-            <span className="text-sm font-medium text-foreground">Level {profile?.level ?? currentUser.level}</span>
+            <span className="text-sm font-medium text-foreground">
+              Level {profile?.level ?? currentUser.level}
+            </span>
           </div>
           <span className="text-xs text-muted-foreground">
-            {(profile?.xp ?? currentUser.xp).toLocaleString()} / {(profile?.xpToNext ?? currentUser.xpToNext).toLocaleString()} XP
+            {(profile?.xp ?? currentUser.xp).toLocaleString()} /{" "}
+            {(profile?.xpToNext ?? currentUser.xpToNext).toLocaleString()} XP
           </span>
         </div>
         <Progress
-          value={((profile?.xp ?? currentUser.xp) / (profile?.xpToNext ?? currentUser.xpToNext)) * 100}
+          value={
+            ((profile?.xp ?? currentUser.xp) /
+              (profile?.xpToNext ?? currentUser.xpToNext)) *
+            100
+          }
           className="h-2.5 bg-secondary [&>div]:bg-gradient-to-r [&>div]:from-primary [&>div]:to-[hsl(var(--gold))]"
         />
         <p className="text-xs text-muted-foreground mt-2">
-          {((profile?.xpToNext ?? currentUser.xpToNext) - (profile?.xp ?? currentUser.xp)).toLocaleString()} XP until Level {(profile?.level ?? currentUser.level) + 1}
+          {(
+            (profile?.xpToNext ?? currentUser.xpToNext) -
+            (profile?.xp ?? currentUser.xp)
+          ).toLocaleString()}{" "}
+          XP until Level {(profile?.level ?? currentUser.level) + 1}
         </p>
       </div>
 
@@ -120,9 +144,11 @@ export function DashboardContent({ identity }: { identity?: IdentitySnapshot }) 
         <div className="lg:col-span-2 space-y-8">
           {/* Current courses */}
           <section>
-            <h2 className="text-lg font-semibold text-foreground mb-4">Continue Learning</h2>
+            <h2 className="text-lg font-semibold text-foreground mb-4">
+              Continue Learning
+            </h2>
             <div className="space-y-3">
-              {inProgressCourses.map((course) => {
+              {inProgressCourses.map(course => {
                 // Find next lesson
                 let nextLesson = null
                 for (const mod of course.modules) {
@@ -168,7 +194,9 @@ export function DashboardContent({ identity }: { identity?: IdentitySnapshot }) 
                         </div>
                       </div>
                       <Link
-                        href={`/courses/${course.slug}/lessons/${nextLesson?.id || "1-1"}`}
+                        href={`/courses/${course.slug}/lessons/${
+                          nextLesson?.id || "1-1"
+                        }`}
                       >
                         <Button
                           size="sm"
@@ -187,7 +215,9 @@ export function DashboardContent({ identity }: { identity?: IdentitySnapshot }) 
 
           {/* Streak calendar */}
           <section>
-            <h2 className="text-lg font-semibold text-foreground mb-4">Activity Streak</h2>
+            <h2 className="text-lg font-semibold text-foreground mb-4">
+              Activity Streak
+            </h2>
             <div className="rounded-xl border border-border bg-card p-5">
               <div className="flex items-center gap-3 mb-2">
                 <Flame className="h-5 w-5 text-[hsl(var(--gold))] animate-fire" />
@@ -206,7 +236,8 @@ export function DashboardContent({ identity }: { identity?: IdentitySnapshot }) 
                     {heatmap.weeks.map((week, weekIndex) => {
                       const showLabel =
                         weekIndex === 0 ||
-                        week[0].getMonth() !== heatmap.weeks[weekIndex - 1][0].getMonth()
+                        week[0].getMonth() !==
+                          heatmap.weeks[weekIndex - 1][0].getMonth()
 
                       return (
                         <div key={week[0].toISOString()} className="w-3">
@@ -228,16 +259,26 @@ export function DashboardContent({ identity }: { identity?: IdentitySnapshot }) 
                     </div>
 
                     <div className="flex gap-1">
-                      {heatmap.weeks.map((week) => (
-                        <div key={week[0].toISOString()} className="grid grid-rows-7 gap-1">
-                          {week.map((date) => {
+                      {heatmap.weeks.map(week => (
+                        <div
+                          key={week[0].toISOString()}
+                          className="grid grid-rows-7 gap-1"
+                        >
+                          {week.map(date => {
                             const dateKey = toDateKey(date)
-                            const intensity = heatmap.intensityByDate.get(dateKey) ?? 0
+                            const intensity =
+                              heatmap.intensityByDate.get(dateKey) ?? 0
                             return (
                               <div
                                 key={dateKey}
-                                className={`h-3 w-3 rounded-[3px] border border-border/40 ${intensityClass(intensity)}`}
-                                title={`${dateKey}: ${intensity > 0 ? `${intensity} activities` : "No activity"}`}
+                                className={`h-3 w-3 rounded-[3px] border border-border/40 ${intensityClass(
+                                  intensity,
+                                )}`}
+                                title={`${dateKey}: ${
+                                  intensity > 0
+                                    ? `${intensity} activities`
+                                    : "No activity"
+                                }`}
                               />
                             )
                           })}
@@ -264,9 +305,11 @@ export function DashboardContent({ identity }: { identity?: IdentitySnapshot }) 
 
           {/* Recommended courses */}
           <section>
-            <h2 className="text-lg font-semibold text-foreground mb-4">Recommended for You</h2>
+            <h2 className="text-lg font-semibold text-foreground mb-4">
+              Recommended for You
+            </h2>
             <div className="grid gap-4 sm:grid-cols-2">
-              {recommendedCourses.map((course) => (
+              {recommendedCourses.map(course => (
                 <Link key={course.slug} href={`/courses/${course.slug}`}>
                   <div className="rounded-xl border border-border bg-card p-5 transition-all hover:border-primary/20 h-full">
                     <Badge
@@ -298,12 +341,15 @@ export function DashboardContent({ identity }: { identity?: IdentitySnapshot }) 
 
         {/* Sidebar - 1 col */}
         <div className="space-y-6">
+          <LeaderboardWidget />
           {/* Badges */}
           <section>
-            <h2 className="text-lg font-semibold text-foreground mb-4">Achievements</h2>
+            <h2 className="text-lg font-semibold text-foreground mb-4">
+              Achievements
+            </h2>
             <div className="rounded-xl border border-border bg-card p-5">
               <div className="grid grid-cols-4 gap-3">
-                {currentUser.badges.map((badge) => {
+                {currentUser.badges.map(badge => {
                   const Icon = badgeIcons[badge.icon] || Award
                   return (
                     <div
@@ -319,7 +365,11 @@ export function DashboardContent({ identity }: { identity?: IdentitySnapshot }) 
                         }`}
                       >
                         <Icon
-                          className={`h-4 w-4 ${badge.earned ? "text-primary" : "text-muted-foreground"}`}
+                          className={`h-4 w-4 ${
+                            badge.earned
+                              ? "text-primary"
+                              : "text-muted-foreground"
+                          }`}
                         />
                       </div>
                       <span className="text-[10px] text-muted-foreground text-center leading-tight truncate w-full">
@@ -334,7 +384,9 @@ export function DashboardContent({ identity }: { identity?: IdentitySnapshot }) 
 
           {/* Recent activity */}
           <section>
-            <h2 className="text-lg font-semibold text-foreground mb-4">Recent Activity</h2>
+            <h2 className="text-lg font-semibold text-foreground mb-4">
+              Recent Activity
+            </h2>
             <div className="rounded-xl border border-border bg-card overflow-hidden">
               <div className="divide-y divide-border">
                 {recentActivity.map((activity, i) => (
@@ -359,14 +411,18 @@ export function DashboardContent({ identity }: { identity?: IdentitySnapshot }) 
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm text-foreground">{activity.text}</p>
+                      <p className="text-sm text-foreground">
+                        {activity.text}
+                      </p>
                       <div className="flex items-center gap-2 mt-0.5">
                         {activity.course && (
                           <span className="text-xs text-muted-foreground truncate">
                             {activity.course}
                           </span>
                         )}
-                        <span className="text-xs text-muted-foreground">{activity.time}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {activity.time}
+                        </span>
                       </div>
                     </div>
                     <span className="flex items-center gap-0.5 text-xs text-primary shrink-0">
@@ -398,7 +454,9 @@ function StatCard({
 }) {
   return (
     <div className="rounded-xl border border-border bg-card p-4">
-      <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${bgColor} mb-3`}>
+      <div
+        className={`flex h-9 w-9 items-center justify-center rounded-lg ${bgColor} mb-3`}
+      >
         <Icon className={`h-4 w-4 ${color}`} />
       </div>
       <p className="text-2xl font-bold text-foreground">{value}</p>
@@ -447,7 +505,7 @@ function buildContributionHeatmap(
     intensityByDate.set(day.date, day.intensity)
   }
 
-  const activeDays = streakDays.filter((day) => day.intensity > 0).length
+  const activeDays = streakDays.filter(day => day.intensity > 0).length
 
   const latestDate = fromDateKey(streakDays[streakDays.length - 1].date)
   const earliestDate = fromDateKey(streakDays[0].date)
