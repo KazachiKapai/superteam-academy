@@ -226,24 +226,92 @@ export function LessonView({
 
         {/* Main content area */}
         {isChallenge ? (
-          <ResizablePanelGroup direction="horizontal" className="flex-1">
-            <ResizablePanel defaultSize={45} minSize={30}>
-              <div className="h-full overflow-y-auto p-6 lg:p-8">
-                <LessonContent
-                  lesson={lesson}
-                  showHint={showHint}
-                  setShowHint={setShowHint}
-                  showSolution={showSolution}
-                  setShowSolution={setShowSolution}
-                  isChallenge
-                />
+          <div className="flex flex-1 flex-col overflow-hidden">
+            <ResizablePanelGroup direction="horizontal" className="flex-1 min-h-0">
+              <ResizablePanel defaultSize={45} minSize={30}>
+                <div className="h-full overflow-y-auto p-6 lg:p-8">
+                  <LessonContent
+                    lesson={lesson}
+                    showHint={showHint}
+                    setShowHint={setShowHint}
+                    showSolution={showSolution}
+                    setShowSolution={setShowSolution}
+                    isChallenge
+                  />
+                </div>
+              </ResizablePanel>
+              <ResizableHandle withHandle className="bg-border" />
+              <ResizablePanel defaultSize={55} minSize={30}>
+                <CodeEditor courseSlug={course.slug} nextLessonId={nextLesson?.id || null} />
+              </ResizablePanel>
+            </ResizablePanelGroup>
+            {/* Mark Complete / nav for challenges (and last lesson) */}
+            <div className="shrink-0 flex items-center justify-between gap-4 border-t border-border bg-card px-4 py-3">
+              {prevLesson ? (
+                <Link href={`/courses/${course.slug}/lessons/${prevLesson.id}`}>
+                  <Button variant="outline" className="gap-2 border-border text-muted-foreground">
+                    <ArrowLeft className="h-4 w-4" />
+                    Previous
+                  </Button>
+                </Link>
+              ) : (
+                <div />
+              )}
+              {completeTxSignature ? (
+                <div className="flex flex-col items-center gap-2">
+                  <p className="text-sm text-primary font-medium">Recorded on-chain (backend signed)</p>
+                  <a
+                    href={`https://explorer.solana.com/tx/${completeTxSignature}${ACADEMY_CLUSTER === "devnet" ? "?cluster=devnet" : ""}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-xs text-primary hover:underline inline-flex items-center gap-1"
+                  >
+                    View transaction <ExternalLink className="h-3 w-3" />
+                  </a>
+                  <Button
+                    onClick={() => redirectTo && (window.location.href = redirectTo)}
+                    className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2"
+                  >
+                    {redirectTo?.includes("/lessons/") ? "Next lesson" : "Back to course"}
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  onClick={handleMarkComplete}
+                  disabled={isCompleting}
+                  className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2"
+                >
+                  <CheckCircle2 className="h-4 w-4" />
+                  {isCompleting ? "Submitting..." : "Mark Complete"}
+                </Button>
+              )}
+              {nextLesson ? (
+                <Link href={`/courses/${course.slug}/lessons/${nextLesson.id}`}>
+                  <Button variant="outline" className="gap-2 border-border text-muted-foreground">
+                    Next
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                </Link>
+              ) : (
+                <div />
+              )}
+            </div>
+            {completeError && isChallenge ? (
+              <div className="shrink-0 flex flex-wrap items-center gap-2 px-4 pb-3">
+                <p className="text-sm text-destructive">{completeError}</p>
+                {needsSignIn && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-primary text-primary hover:bg-primary/10"
+                    onClick={() => void loginWithWallet().then(() => setNeedsSignIn(false))}
+                  >
+                    Sign in
+                  </Button>
+                )}
               </div>
-            </ResizablePanel>
-            <ResizableHandle withHandle className="bg-border" />
-            <ResizablePanel defaultSize={55} minSize={30}>
-              <CodeEditor courseSlug={course.slug} nextLessonId={nextLesson?.id || null} />
-            </ResizablePanel>
-          </ResizablePanelGroup>
+            ) : null}
+          </div>
         ) : (
           <div className="flex-1 overflow-y-auto">
             <div className="mx-auto max-w-3xl p-6 lg:p-10">
