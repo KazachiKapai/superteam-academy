@@ -54,7 +54,8 @@ export function Navbar() {
         </Link>
 
         {/* Desktop Nav */}
-        <nav className="hidden items-center gap-1 md:flex">
+        <div className="hidden items-center gap-3 md:flex">
+          <nav className="flex items-center gap-1">
           {visibleNavLinks.map((link) => (
             <Link
               key={link.href}
@@ -65,7 +66,8 @@ export function Navbar() {
               {link.label}
             </Link>
           ))}
-        </nav>
+          </nav>
+        </div>
 
         {/* Right side */}
         <div className="hidden items-center gap-3 md:flex">
@@ -78,40 +80,7 @@ export function Navbar() {
               <Wallet className="mr-2 h-4 w-4" />
               Connect Wallet
             </Button>
-          ) : (
-            <>
-              <Badge variant="outline" className="border-primary/30 text-primary">
-                {shortAddress(activeAddress)}
-              </Badge>
-              {!isAuthenticated && isLoading ? (
-                <Badge variant="outline" className="border-border text-muted-foreground">
-                  Authorizing...
-                </Badge>
-              ) : !isAuthenticated ? (
-                <Button
-                  variant="outline"
-                  className="border-primary/30 text-primary hover:bg-primary/10"
-                  onClick={() => {
-                    void loginWithWallet().catch(() => undefined)
-                  }}
-                >
-                  Retry Auth
-                </Button>
-              ) : (
-                <Button
-                  variant="outline"
-                  className="border-primary/30 text-primary hover:bg-primary/10"
-                  disabled={isLoading}
-                  onClick={() => {
-                    void logout().catch(() => undefined)
-                  }}
-                >
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Logout
-                </Button>
-              )}
-            </>
-          )}
+          ) : null}
 
           <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
             <Search className="h-4 w-4" />
@@ -146,6 +115,41 @@ export function Navbar() {
                 </Button>
               </Link>
             </>
+          )}
+
+          {connected && (
+            <div className="ml-1 flex items-center gap-2">
+              <Badge variant="outline" className="border-primary/30 text-primary">
+                {shortAddress(activeAddress)}
+              </Badge>
+              {!isAuthenticated && isLoading ? (
+                <Badge variant="outline" className="border-border text-muted-foreground">
+                  Authorizing...
+                </Badge>
+              ) : !isAuthenticated ? (
+                <Button
+                  variant="outline"
+                  className="border-primary/30 text-primary hover:bg-primary/10"
+                  onClick={() => {
+                    void loginWithWallet().catch(() => undefined)
+                  }}
+                >
+                  Retry Auth
+                </Button>
+              ) : (
+                <Button
+                  variant="outline"
+                  className="border-primary/30 text-primary hover:bg-primary/10"
+                  disabled={isLoading}
+                  onClick={() => {
+                    void logout().catch(() => undefined)
+                  }}
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Logout
+                </Button>
+              )}
+            </div>
           )}
         </div>
 
