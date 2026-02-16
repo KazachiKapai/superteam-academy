@@ -3,6 +3,7 @@ set -euo pipefail
 
 CLUSTER="${1:-devnet}"
 RPC_URL="${2:-https://api.devnet.solana.com}"
+ANCHOR_WALLET_PATH="${ANCHOR_WALLET:-${HOME}/.config/solana/id.json}"
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 FRONTEND_DIR="${ROOT_DIR}/../superteam-frontend"
@@ -18,11 +19,11 @@ cd "${ROOT_DIR}"
 anchor build
 
 echo "==> Deploying program to ${CLUSTER}"
-anchor deploy --provider.cluster "${CLUSTER}"
+anchor deploy --provider.cluster "${CLUSTER}" --provider.wallet "${ANCHOR_WALLET_PATH}"
 
 echo "==> Initializing config PDA (idempotent)"
 export ANCHOR_PROVIDER_URL="${RPC_URL}"
-export ANCHOR_WALLET="${HOME}/.config/solana/id.json"
+export ANCHOR_WALLET="${ANCHOR_WALLET_PATH}"
 npx ts-node ./scripts/init-config.ts
 
 if [[ ! -f "${IDL_PATH}" ]]; then
