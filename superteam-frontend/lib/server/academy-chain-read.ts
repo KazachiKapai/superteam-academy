@@ -143,6 +143,21 @@ export async function getAcademyConfigOnChain(): Promise<OnChainConfig | null> {
   return decodeConfigAccount(configPda, accountInfo.data)
 }
 
+const LEARNER_DISCRIMINATOR = Buffer.from([198, 114, 44, 71, 161, 227, 116, 166])
+
+export async function getAllLearnerProfilesOnChain(): Promise<OnChainLearnerProfile[]> {
+  const accounts = await connection.getProgramAccounts(programId, { commitment: "confirmed" })
+  const out: OnChainLearnerProfile[] = []
+  for (const { pubkey, account } of accounts) {
+    const data = account.data as Buffer
+    if (data.length !== 56 && data.length !== 88) continue
+    if (!data.subarray(0, 8).equals(LEARNER_DISCRIMINATOR)) continue
+    ensureOwnedByProgram(account.owner)
+    out.push(decodeLearnerAccount(pubkey, data))
+  }
+  return out
+}
+
 export async function getLearnerProfileOnChain(
   walletAddress: string,
 ): Promise<OnChainLearnerProfile | null> {

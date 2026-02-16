@@ -19,14 +19,10 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import {
-  currentUser,
-  type Course,
-  courses as mockCourses,
-  recentActivity,
-  getStreakDays,
-} from "@/lib/mock-data"
+import { type Course, courses as mockCourses } from "@/lib/mock-data"
 import type { IdentitySnapshot } from "@/lib/identity/types"
+import type { LeaderboardEntry } from "@/lib/server/leaderboard-cache"
+import type { RecentActivityItem } from "@/lib/server/activity-store"
 import { LeaderboardWidget } from "./leaderboard-widget"
 
 const badgeIcons: Record<string, typeof Zap> = {
@@ -39,13 +35,29 @@ const badgeIcons: Record<string, typeof Zap> = {
   anchor: Anchor,
   zap: Zap,
 }
+const badgeNameToIcon: Record<string, string> = {
+  "First Steps": "footprints",
+  "Code Warrior": "swords",
+  "Streak Master": "flame",
+  "Top 100": "trophy",
+  "Bug Hunter": "bug",
+  "DeFi Builder": "building",
+  "Anchor Pro": "anchor",
+  "Speed Demon": "zap",
+}
 
 export function DashboardContent({
   identity,
   coursesData,
+  activityDays = [],
+  recentActivity = [],
+  leaderboardEntries = [],
 }: {
   identity?: IdentitySnapshot
   coursesData?: Course[]
+  activityDays?: Array<{ date: string; intensity: number }>
+  recentActivity?: RecentActivityItem[]
+  leaderboardEntries?: LeaderboardEntry[]
 }) {
   const courses = coursesData ?? mockCourses
   const profile = identity?.profile
@@ -53,8 +65,7 @@ export function DashboardContent({
     c => c.progress > 0 && c.progress < 100,
   )
   const recommendedCourses = courses.filter(c => c.progress === 0).slice(0, 2)
-  const streakDays = getStreakDays(365)
-  const heatmap = buildContributionHeatmap(streakDays)
+  const heatmap = buildContributionHeatmap(activityDays)
 
   return (
     <div>
@@ -62,11 +73,10 @@ export function DashboardContent({
       <div className="flex flex-col gap-4 mb-8 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground lg:text-3xl">
-            Welcome back, {(profile?.name ?? currentUser.name).split(" ")[0]}
+            Welcome back, {(profile?.name ?? "there").split(" ")[0]}
           </h1>
           <p className="mt-1 text-muted-foreground">
-            Keep up the momentum! You{"'"}re on a{" "}
-            {profile?.streak ?? currentUser.streak}-day streak.
+            Keep up the momentum! You{"'"}re on a {profile?.streak ?? 0}-day streak.
           </p>
         </div>
         <Link href="/courses">
@@ -82,28 +92,28 @@ export function DashboardContent({
         <StatCard
           icon={Zap}
           label="Total XP"
-          value={(profile?.xp ?? currentUser.xp).toLocaleString()}
+          value={(profile?.xp ?? 0).toLocaleString()}
           color="text-primary"
           bgColor="bg-primary/10"
         />
         <StatCard
           icon={Flame}
           label="Day Streak"
-          value={`${profile?.streak ?? currentUser.streak}`}
+          value={`${profile?.streak ?? 0}`}
           color="text-[hsl(var(--gold))]"
           bgColor="bg-[hsl(var(--gold))]/10"
         />
         <StatCard
           icon={Trophy}
           label="Global Rank"
-          value={`#${profile?.rank ?? currentUser.rank}`}
+          value={`#${profile?.rank ?? "—"}`}
           color="text-primary"
           bgColor="bg-primary/10"
         />
         <StatCard
           icon={Target}
           label="Level"
-          value={`${profile?.level ?? currentUser.level}`}
+          value={`${profile?.level ?? 1}`}
           color="text-[hsl(var(--gold))]"
           bgColor="bg-[hsl(var(--gold))]/10"
         />
@@ -115,28 +125,22 @@ export function DashboardContent({
           <div className="flex items-center gap-2">
             <TrendingUp className="h-4 w-4 text-primary" />
             <span className="text-sm font-medium text-foreground">
-              Level {profile?.level ?? currentUser.level}
+              Level {profile?.level ?? 1}
             </span>
           </div>
           <span className="text-xs text-muted-foreground">
-            {(profile?.xp ?? currentUser.xp).toLocaleString()} /{" "}
-            {(profile?.xpToNext ?? currentUser.xpToNext).toLocaleString()} XP
+            {(profile?.xp ?? 0).toLocaleString()} / {(profile?.xpToNext ?? 10000).toLocaleString()} XP
           </span>
         </div>
         <Progress
           value={
-            ((profile?.xp ?? currentUser.xp) /
-              (profile?.xpToNext ?? currentUser.xpToNext)) *
-            100
+            ((profile?.xp ?? 0) / (profile?.xpToNext ?? 10000)) * 100
           }
           className="h-2.5 bg-secondary [&>div]:bg-gradient-to-r [&>div]:from-primary [&>div]:to-[hsl(var(--gold))]"
         />
         <p className="text-xs text-muted-foreground mt-2">
-          {(
-            (profile?.xpToNext ?? currentUser.xpToNext) -
-            (profile?.xp ?? currentUser.xp)
-          ).toLocaleString()}{" "}
-          XP until Level {(profile?.level ?? currentUser.level) + 1}
+          {Math.max(0, (profile?.xpToNext ?? 10000) - (profile?.xp ?? 0)).toLocaleString()} XP until
+          Level {(profile?.level ?? 1) + 1}
         </p>
       </div>
 
@@ -223,7 +227,7 @@ export function DashboardContent({
               <div className="flex items-center gap-3 mb-2">
                 <Flame className="h-5 w-5 text-[hsl(var(--gold))] animate-fire" />
                 <span className="text-sm font-semibold text-foreground">
-                  {currentUser.streak} day streak!
+                  {profile?.streak ?? 0} day streak!
                 </span>
               </div>
 
@@ -342,7 +346,7 @@ export function DashboardContent({
 
         {/* Sidebar - 1 col */}
         <div className="space-y-6">
-          <LeaderboardWidget />
+          <LeaderboardWidget entries={leaderboardEntries.slice(0, 5)} />
           {/* Badges */}
           <section>
             <h2 className="text-lg font-semibold text-foreground mb-4">
@@ -350,13 +354,14 @@ export function DashboardContent({
             </h2>
             <div className="rounded-xl border border-border bg-card p-5">
               <div className="grid grid-cols-4 gap-3">
-                {currentUser.badges.map(badge => {
-                  const Icon = badgeIcons[badge.icon] || Award
+                {(profile?.badges ?? []).map(badge => {
+                  const iconKey = badgeNameToIcon[badge.name] ?? "zap"
+                  const Icon = badgeIcons[iconKey] ?? Award
                   return (
                     <div
                       key={badge.name}
                       className="flex flex-col items-center gap-1.5"
-                      title={`${badge.name}: ${badge.description}`}
+                      title={badge.name}
                     >
                       <div
                         className={`flex h-10 w-10 items-center justify-center rounded-lg ${
@@ -390,47 +395,43 @@ export function DashboardContent({
             </h2>
             <div className="rounded-xl border border-border bg-card overflow-hidden">
               <div className="divide-y divide-border">
-                {recentActivity.map((activity, i) => (
-                  <div key={i} className="flex items-start gap-3 px-4 py-3">
-                    <div className="mt-0.5">
-                      {activity.type === "challenge" ? (
-                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10">
-                          <Zap className="h-3 w-3 text-primary" />
+                {recentActivity.length === 0 ? (
+                  <p className="px-4 py-6 text-sm text-muted-foreground text-center">
+                    No recent activity. Complete a lesson to see it here.
+                  </p>
+                ) : (
+                  recentActivity.map((activity, i) => (
+                    <div key={i} className="flex items-start gap-3 px-4 py-3">
+                      <div className="mt-0.5">
+                        {activity.type === "course" ? (
+                          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10">
+                            <Award className="h-3 w-3 text-primary" />
+                          </div>
+                        ) : (
+                          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-secondary">
+                            <BookOpen className="h-3 w-3 text-muted-foreground" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-foreground">{activity.text}</p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          {activity.course && (
+                            <span className="text-xs text-muted-foreground truncate">
+                              {activity.course}
+                            </span>
+                          )}
+                          <span className="text-xs text-muted-foreground">{activity.time}</span>
                         </div>
-                      ) : activity.type === "streak" ? (
-                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[hsl(var(--gold))]/10">
-                          <Flame className="h-3 w-3 text-[hsl(var(--gold))]" />
-                        </div>
-                      ) : activity.type === "badge" ? (
-                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10">
-                          <Award className="h-3 w-3 text-primary" />
-                        </div>
-                      ) : (
-                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-secondary">
-                          <BookOpen className="h-3 w-3 text-muted-foreground" />
-                        </div>
+                      </div>
+                      {activity.xp > 0 && (
+                        <span className="flex items-center gap-0.5 text-xs text-primary shrink-0">
+                          <Zap className="h-3 w-3" />+{activity.xp}
+                        </span>
                       )}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-foreground">
-                        {activity.text}
-                      </p>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        {activity.course && (
-                          <span className="text-xs text-muted-foreground truncate">
-                            {activity.course}
-                          </span>
-                        )}
-                        <span className="text-xs text-muted-foreground">
-                          {activity.time}
-                        </span>
-                      </div>
-                    </div>
-                    <span className="flex items-center gap-0.5 text-xs text-primary shrink-0">
-                      <Zap className="h-3 w-3" />+{activity.xp}
-                    </span>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </div>
           </section>

@@ -29,8 +29,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { currentUser } from "@/lib/mock-data"
 import { useWalletAuth } from "@/components/providers/wallet-auth-provider"
+import { useIdentitySnapshot } from "@/hooks/use-identity-snapshot"
 
 const navLinks = [
   { href: "/courses", label: "Courses", icon: BookOpen },
@@ -44,7 +44,9 @@ export function Navbar() {
   const { connected, publicKey } = useWallet()
   const { setVisible } = useWalletModal()
   const { isLoading, isAuthenticated, user, authError, loginWithWallet, logout } = useWalletAuth()
+  const { snapshot } = useIdentitySnapshot()
 
+  const profile = snapshot?.profile
   const connectedAddress = publicKey?.toBase58() ?? null
   const activeAddress = user?.walletAddress ?? connectedAddress
   const visibleNavLinks = isAuthenticated ? navLinks : []
@@ -91,13 +93,15 @@ export function Navbar() {
               {/* Streak */}
               <div className="flex items-center gap-1.5 rounded-lg bg-secondary px-3 py-1.5">
                 <Flame className="h-4 w-4 text-[hsl(var(--gold))]" />
-                <span className="text-sm font-semibold text-foreground">{currentUser.streak}</span>
+                <span className="text-sm font-semibold text-foreground">{profile?.streak ?? "—"}</span>
               </div>
 
               {/* XP */}
               <div className="flex items-center gap-1.5 rounded-lg bg-secondary px-3 py-1.5">
                 <Zap className="h-4 w-4 text-primary" />
-                <span className="text-sm font-semibold text-foreground">{currentUser.xp.toLocaleString()}</span>
+                <span className="text-sm font-semibold text-foreground">
+                  {(profile?.xp ?? 0).toLocaleString()}
+                </span>
               </div>
 
               {/* Profile */}
@@ -106,7 +110,7 @@ export function Navbar() {
                   <button className="rounded-full border border-primary/30 outline-none transition-colors hover:border-primary/50 focus-visible:ring-2 focus-visible:ring-primary/50">
                     <Avatar className="h-8 w-8">
                       <AvatarFallback className="bg-primary/20 text-xs text-primary">
-                        {currentUser.avatar}
+                        {profile?.name?.slice(0, 2) ?? activeAddress?.slice(0, 2) ?? "?"}
                       </AvatarFallback>
                     </Avatar>
                   </button>
@@ -230,22 +234,22 @@ export function Navbar() {
             <div className="flex items-center gap-3 mb-4 pb-4 border-b border-border">
               <Avatar className="h-10 w-10 border border-primary/30">
                 <AvatarFallback className="bg-primary/20 text-sm text-primary">
-                  {currentUser.avatar}
+                  {profile?.name?.slice(0, 2) ?? activeAddress?.slice(0, 2) ?? "?"}
                 </AvatarFallback>
               </Avatar>
               <div>
-                <p className="text-sm font-semibold text-foreground">{currentUser.name}</p>
+                <p className="text-sm font-semibold text-foreground">{profile?.name ?? shortAddress(activeAddress)}</p>
                 <div className="flex items-center gap-3 mt-0.5">
                   <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <Flame className="h-3 w-3 text-[hsl(var(--gold))]" /> {currentUser.streak}
+                    <Flame className="h-3 w-3 text-[hsl(var(--gold))]" /> {profile?.streak ?? "—"}
                   </span>
                   <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <Zap className="h-3 w-3 text-primary" /> {currentUser.xp.toLocaleString()} XP
+                    <Zap className="h-3 w-3 text-primary" /> {(profile?.xp ?? 0).toLocaleString()} XP
                   </span>
                 </div>
               </div>
               <Badge variant="outline" className="ml-auto border-primary/30 text-primary text-xs">
-                Lvl {currentUser.level}
+                Lvl {profile?.level ?? "—"}
               </Badge>
             </div>
           )}

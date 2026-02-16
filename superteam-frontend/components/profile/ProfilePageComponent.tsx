@@ -21,7 +21,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import { Progress } from "@/components/ui/progress"
-import { courses as allCourses, currentUser, getStreakDays, leaderboardUsers, mockCertificates } from "@/lib/mock-data"
+import type { Course } from "@/lib/mock-data"
 import type { IdentitySnapshot } from "@/lib/identity/types"
 
 type SkillMap = {
@@ -55,7 +55,7 @@ type ProfileUser = {
   skills: SkillMap
   achievements: Array<{ id: string; name: string; earned: boolean }>
   onChainCredentials: Array<{ id: string; name: string; mintAddress: string; date: string }>
-  completedCourses: typeof allCourses
+  completedCourses: Course[]
 }
 
 const chartConfig = {
@@ -65,106 +65,49 @@ const chartConfig = {
   },
 } satisfies ChartConfig
 
-function toSkillMap(skills: typeof currentUser.skills): SkillMap {
-  const score = (name: string) => skills.find((s) => s.name.toLowerCase() === name)?.value ?? 0
-  return {
-    rust: score("rust"),
-    anchor: score("anchor"),
-    frontend: score("frontend"),
-    security: score("security"),
-    defi: score("defi"),
-    testing: score("testing"),
-  }
+const EMPTY_SKILLS: SkillMap = {
+  rust: 0,
+  anchor: 0,
+  frontend: 0,
+  security: 0,
+  defi: 0,
+  testing: 0,
 }
 
-function hashScore(input: string, min: number, max: number): number {
-  let hash = 0
-  for (let i = 0; i < input.length; i++) {
-    hash = (hash << 5) - hash + input.charCodeAt(i)
-    hash |= 0
-  }
-  const spread = max - min + 1
-  return min + (Math.abs(hash) % spread)
-}
-
-function mapLeaderboardUsersToProfiles(): ProfileUser[] {
-  return leaderboardUsers.map((user, index) => {
-    const idSeed = `${user.username}-${user.rank}`
-    const completedCount = Math.max(1, hashScore(idSeed, 1, 3))
-    return {
-      id: `leaderboard-${index + 1}`,
-      name: user.name,
-      username: user.username,
-      bio: "Solana builder focused on consistent daily progress and hands-on learning.",
-      joinDate: "Jan 2025",
-      avatar: user.avatar,
-      level: user.level,
-      xp: user.xp,
-      xpToNext: user.xp + 1800,
-      streak: user.streak,
-      rank: user.rank,
-      totalCompleted: completedCount,
-      socialLinks: {
-        github: user.username,
-      },
-      skills: {
-        rust: hashScore(`${idSeed}-rust`, 45, 92),
-        anchor: hashScore(`${idSeed}-anchor`, 40, 88),
-        frontend: hashScore(`${idSeed}-frontend`, 35, 90),
-        security: hashScore(`${idSeed}-security`, 30, 86),
-        defi: hashScore(`${idSeed}-defi`, 35, 87),
-        testing: hashScore(`${idSeed}-testing`, 30, 84),
-      },
-      achievements: [
-        { id: "starter", name: "Solana Starter", earned: true },
-        { id: "streak-7", name: "7-Day Streak", earned: user.streak >= 7 },
-        { id: "rank-top50", name: "Top 50", earned: user.rank <= 50 },
-      ],
-      onChainCredentials: [],
-      completedCourses: allCourses.slice(0, completedCount),
-    }
-  })
-}
-
-function buildMockUsers(identity?: IdentitySnapshot): ProfileUser[] {
+function buildProfileUser(
+  identity: IdentitySnapshot | undefined,
+  completedCourses: Course[],
+): ProfileUser | null {
   const profile = identity?.profile
-  const primaryUser: ProfileUser = {
-    id: profile?.userId ?? "me",
-    name: profile?.name ?? currentUser.name,
-    username: profile?.username ?? currentUser.username,
-    bio: profile?.bio ?? currentUser.bio,
-    joinDate: profile?.joinDate ?? currentUser.joinDate,
-    avatar: currentUser.avatar,
-    level: profile?.level ?? currentUser.level,
-    xp: profile?.xp ?? currentUser.xp,
-    xpToNext: profile?.xpToNext ?? currentUser.xpToNext,
-    streak: profile?.streak ?? currentUser.streak,
-    rank: profile?.rank ?? currentUser.rank,
-    totalCompleted: profile?.totalCompleted ?? currentUser.totalCompleted,
-    socialLinks: currentUser.socialLinks,
-    skills: toSkillMap(currentUser.skills),
-    achievements: (profile?.badges ?? currentUser.badges).map((badge, index) => ({
-      id: `${index}-${badge.name}`,
-      name: badge.name,
-      earned: badge.earned,
+  if (!profile) return null
+  return {
+    id: profile.userId,
+    name: profile.name,
+    username: profile.username,
+    bio: profile.bio,
+    joinDate: profile.joinDate,
+    avatar: profile.walletAddress.slice(0, 2).toUpperCase(),
+    level: profile.level,
+    xp: profile.xp,
+    xpToNext: profile.xpToNext,
+    streak: profile.streak,
+    rank: profile.rank,
+    totalCompleted: profile.totalCompleted,
+    socialLinks: undefined,
+    skills: EMPTY_SKILLS,
+    achievements: profile.badges.map((b, i) => ({
+      id: `${i}-${b.name}`,
+      name: b.name,
+      earned: b.earned,
     })),
-    onChainCredentials: profile?.certificates
-      ? profile.certificates.map((certificate) => ({
-          id: certificate.id,
-          name: certificate.course,
-          mintAddress: certificate.mintAddress,
-          date: certificate.date,
-        }))
-      : mockCertificates.map((certificate) => ({
-          id: certificate.id,
-          name: certificate.course.title,
-          mintAddress: certificate.nft.mintAddress,
-          date: certificate.date,
-        })),
-    completedCourses: allCourses.filter((course) => currentUser.completedCourses.includes(course.slug)),
+    onChainCredentials: profile.certificates.map((c) => ({
+      id: c.id,
+      name: c.course,
+      mintAddress: c.mintAddress,
+      date: c.date,
+    })),
+    completedCourses,
   }
-
-  return [primaryUser, ...mapLeaderboardUsersToProfiles()]
 }
 
 function shortAddress(mint: string): string {
@@ -172,13 +115,14 @@ function shortAddress(mint: string): string {
   return `${mint.slice(0, 4)}...${mint.slice(-4)}`
 }
 
-function buildContributionWindow() {
-  const daily = getStreakDays(365)
+function buildContributionWindow(activityDays: Array<{ date: string; intensity: number }>) {
   const byDate = new Map<string, number>()
-  for (const day of daily) byDate.set(day.date, day.intensity)
-
-  const first = new Date(daily[0].date)
-  const last = new Date(daily[daily.length - 1].date)
+  for (const day of activityDays) byDate.set(day.date, day.intensity)
+  if (activityDays.length === 0) {
+    return { weeks: [] as Date[][], byDate, activeDays: 0 }
+  }
+  const first = new Date(activityDays[0]!.date)
+  const last = new Date(activityDays[activityDays.length - 1]!.date)
   const start = new Date(first)
   start.setDate(start.getDate() - start.getDay())
   const end = new Date(last)
@@ -188,25 +132,38 @@ function buildContributionWindow() {
   for (const cursor = new Date(start); cursor <= end; cursor.setDate(cursor.getDate() + 1)) {
     days.push(new Date(cursor))
   }
-
   const weeks: Date[][] = []
   for (let i = 0; i < days.length; i += 7) {
     weeks.push(days.slice(i, i + 7))
   }
-
-  const activeDays = daily.filter((day) => day.intensity > 0).length
+  const activeDays = activityDays.filter((day) => day.intensity > 0).length
   return { weeks, byDate, activeDays }
 }
 
 export default function ProfilePageComponent({
-  username,
+  username: usernameParam,
   identity,
+  activityDays = [],
+  completedCourses = [],
 }: {
   username?: string
   identity?: IdentitySnapshot
+  activityDays?: Array<{ date: string; intensity: number }>
+  completedCourses?: Course[]
 }) {
-  const users = useMemo(() => buildMockUsers(identity), [identity])
-  const user = username ? users.find((u) => u.username === username) : users[0]
+  const user = useMemo(
+    () => buildProfileUser(identity, completedCourses),
+    [identity, completedCourses],
+  )
+  if (usernameParam != null && user && user.username !== usernameParam) {
+    return (
+      <div className="mx-auto max-w-4xl px-4 py-10 lg:px-6">
+        <Card>
+          <CardContent className="py-10 text-center text-muted-foreground">User not found.</CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   if (!user) {
     return (
@@ -229,7 +186,7 @@ export default function ProfilePageComponent({
 
   const chartData = skillRows.map((row) => ({ skill: row.label, value: row.value }))
   const xpProgress = Math.min(100, Math.round((user.xp / user.xpToNext) * 100))
-  const contributions = buildContributionWindow()
+  const contributions = buildContributionWindow(activityDays)
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 lg:px-6 lg:py-10">
@@ -240,7 +197,9 @@ export default function ProfilePageComponent({
             <div className="flex min-w-0 items-start gap-4">
               <Avatar className="h-20 w-20 border-4 border-background bg-primary/20">
                 <AvatarFallback className="text-xl font-semibold text-primary">
-                  {user.avatar.slice(0, 2)}
+                  {typeof user.avatar === "string" && user.avatar.length >= 2
+                    ? user.avatar.slice(0, 2)
+                    : user.name.slice(0, 2)}
                 </AvatarFallback>
               </Avatar>
               <div className="min-w-0">

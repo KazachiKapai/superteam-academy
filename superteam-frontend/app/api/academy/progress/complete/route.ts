@@ -8,6 +8,8 @@ import {
   finalizeCourseOnChain,
 } from "@/lib/server/academy-program"
 import { getCatalogCourseMeta } from "@/lib/server/academy-course-catalog"
+import { recordLessonComplete, recordCourseFinalized } from "@/lib/server/activity-store"
+import { courses } from "@/lib/mock-data"
 
 type CompleteLessonBody = {
   slug?: string
@@ -52,11 +54,15 @@ export async function POST(request: Request) {
   const enrollmentAfter = await fetchEnrollment(userPk, slug)
   const lessonsCompleted = Number(enrollmentAfter?.lessonsCompleted ?? 0)
 
+  const courseTitle = courses.find((c) => c.slug === slug)?.title ?? slug
+  recordLessonComplete(user.walletAddress, courseTitle, body.lessonId ?? undefined)
+
   let finalized = false
   if (lessonsCompleted >= meta.lessonsCount) {
     try {
       await finalizeCourseOnChain(userPk, slug)
       finalized = true
+      recordCourseFinalized(user.walletAddress, courseTitle)
     } catch {
       // Keep lesson completion success even if finalize preconditions fail in race situations.
     }
