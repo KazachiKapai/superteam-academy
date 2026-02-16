@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { useWallet } from "@solana/wallet-adapter-react"
 import { useWalletModal } from "@solana/wallet-adapter-react-ui"
 import {
@@ -14,13 +15,20 @@ import {
   X,
   Flame,
   Zap,
-  Search,
   LogOut,
   Wallet,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { currentUser } from "@/lib/mock-data"
 import { useWalletAuth } from "@/components/providers/wallet-auth-provider"
 
@@ -32,6 +40,7 @@ const navLinks = [
 
 export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false)
+  const router = useRouter()
   const { connected, publicKey } = useWallet()
   const { setVisible } = useWalletModal()
   const { isLoading, isAuthenticated, user, authError, loginWithWallet, logout } = useWalletAuth()
@@ -82,10 +91,6 @@ export function Navbar() {
             </Button>
           ) : null}
 
-          <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
-            <Search className="h-4 w-4" />
-          </Button>
-
           {isAuthenticated && (
             <>
               {/* Streak */}
@@ -101,19 +106,46 @@ export function Navbar() {
               </div>
 
               {/* Profile */}
-              <Link href="/profile" className="flex items-center gap-2">
-                <Avatar className="h-8 w-8 border border-primary/30">
-                  <AvatarFallback className="bg-primary/20 text-xs text-primary">
-                    {currentUser.avatar}
-                  </AvatarFallback>
-                </Avatar>
-              </Link>
-
-              <Link href="/settings">
-                <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
-                  <Settings className="h-4 w-4" />
-                </Button>
-              </Link>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="rounded-full border border-primary/30 outline-none transition-colors hover:border-primary/50 focus-visible:ring-2 focus-visible:ring-primary/50">
+                    <Avatar className="h-8 w-8">
+                      <AvatarFallback className="bg-primary/20 text-xs text-primary">
+                        {currentUser.avatar}
+                      </AvatarFallback>
+                    </Avatar>
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onSelect={() => {
+                      router.push("/profile")
+                    }}
+                  >
+                    <User className="h-4 w-4" />
+                    Profile
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onSelect={() => {
+                      router.push("/settings")
+                    }}
+                  >
+                    <Settings className="h-4 w-4" />
+                    Settings
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onSelect={() => {
+                      void logout().catch(() => undefined)
+                    }}
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Logout
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </>
           )}
 
@@ -136,19 +168,7 @@ export function Navbar() {
                 >
                   Retry Auth
                 </Button>
-              ) : (
-                <Button
-                  variant="outline"
-                  className="border-primary/30 text-primary hover:bg-primary/10"
-                  disabled={isLoading}
-                  onClick={() => {
-                    void logout().catch(() => undefined)
-                  }}
-                >
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Logout
-                </Button>
-              )}
+              ) : null}
             </div>
           )}
         </div>
