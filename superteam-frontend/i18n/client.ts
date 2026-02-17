@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { type Locale, locales, defaultLocale } from "./config";
 
 export function useLocale(): Locale {
@@ -13,8 +14,12 @@ export function useLocale(): Locale {
 }
 
 export function useSetLocale() {
-  return useCallback((locale: Locale) => {
-    document.cookie = `locale=${locale};path=/;max-age=${60 * 60 * 24 * 365};samesite=lax`;
-    window.location.reload();
-  }, []);
+  const router = useRouter();
+  return useCallback(
+    (locale: Locale) => {
+      document.cookie = `locale=${locale};path=/;max-age=${60 * 60 * 24 * 365};samesite=lax`;
+      router.refresh();
+    },
+    [router],
+  );
 }

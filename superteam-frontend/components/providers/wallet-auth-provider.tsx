@@ -263,7 +263,12 @@ export function WalletAuthProvider({ children }: WalletAuthProviderProps) {
   // 5. logout
   // -----------------------------------------------------------------------
   const logout = useCallback(async () => {
-    setStatus("checking");
+    // Prevent useEffect from re-triggering authenticate() while we disconnect
+    authInFlightRef.current = true;
+    setUser(null);
+    setStatus("disconnected");
+    authedAddressRef.current = null;
+    learnerInitRef.current = null;
     try {
       await fetch("/api/auth/wallet/logout", {
         method: "POST",
@@ -272,15 +277,12 @@ export function WalletAuthProvider({ children }: WalletAuthProviderProps) {
     } catch {
       /* best-effort */
     }
-    setUser(null);
-    setStatus("disconnected");
-    authedAddressRef.current = null;
-    learnerInitRef.current = null;
     try {
       if (connected) await disconnect();
     } catch {
       /* ignore */
     }
+    authInFlightRef.current = false;
   }, [connected, disconnect]);
 
   // -----------------------------------------------------------------------

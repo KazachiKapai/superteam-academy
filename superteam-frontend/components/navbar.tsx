@@ -56,26 +56,6 @@ const navLinks = [
   },
 ];
 
-function openWalletModal(setVisible: (v: boolean) => void) {
-  try {
-    setTimeout(() => {
-      try {
-        setVisible(true);
-      } catch (err) {
-        console.error("Failed to open wallet modal:", err);
-        if (
-          typeof window !== "undefined" &&
-          (window as any).solana?.isPhantom
-        ) {
-          (window as any).solana.connect().catch(() => undefined);
-        }
-      }
-    }, 100);
-  } catch (err) {
-    console.error("Wallet connection error:", err);
-  }
-}
-
 export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const router = useRouter();
@@ -149,7 +129,7 @@ export function Navbar() {
             <Button
               variant="outline"
               className="border-primary/30 text-primary hover:bg-primary/10"
-              onClick={() => openWalletModal(setVisible)}
+              onClick={() => setVisible(true)}
             >
               <Wallet className="mr-2 h-4 w-4" />
               {t("connectWallet")}
@@ -215,7 +195,7 @@ export function Navbar() {
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
-                    onSelect={() => void logout().catch(() => undefined)}
+                    onSelect={() => void logout().then(() => router.push("/")).catch(() => undefined)}
                   >
                     <LogOut className="h-4 w-4" />
                     {t("signOut")}
@@ -256,7 +236,7 @@ export function Navbar() {
               <Button
                 variant="outline"
                 className="w-full border-primary/30 text-primary hover:bg-primary/10"
-                onClick={() => openWalletModal(setVisible)}
+                onClick={() => setVisible(true)}
               >
                 <Wallet className="mr-2 h-4 w-4" />
                 {t("connectWallet")}
@@ -277,7 +257,7 @@ export function Navbar() {
                 variant="outline"
                 className="w-full border-primary/30 text-primary hover:bg-primary/10"
                 disabled={isLoading}
-                onClick={() => void logout().catch(() => undefined)}
+                onClick={() => void logout().then(() => router.push("/")).catch(() => undefined)}
               >
                 <LogOut className="mr-2 h-4 w-4" />
                 {t("signOut")} ({shortAddress(activeAddress)})
