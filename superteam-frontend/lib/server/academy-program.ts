@@ -312,6 +312,44 @@ export async function fetchChainActivity(
   }
 }
 
+/**
+ * Batch-count how many courses the wallet has fully completed on-chain.
+ * Uses a single getMultipleAccountsInfo RPC call.
+ */
+export async function countCompletedCoursesOnChain(
+  walletAddress: string,
+): Promise<number> {
+  try {
+    const { connection } = getClient();
+    const { courses } = await import("@/lib/course-catalog");
+    const user = new PublicKey(walletAddress);
+
+    const enrollmentPdas: PublicKey[] = [];
+    const lessonCounts: number[] = [];
+    for (const course of courses) {
+      const coursePda = deriveCoursePda(course.slug);
+      enrollmentPdas.push(deriveEnrollmentPda(coursePda, user));
+      lessonCounts.push(
+        course.modules.reduce((acc, m) => acc + m.lessons.length, 0),
+      );
+    }
+
+    const accounts = await connection.getMultipleAccountsInfo(enrollmentPdas);
+    let completed = 0;
+    for (let i = 0; i < accounts.length; i++) {
+      const info = accounts[i];
+      if (!info) continue;
+      const lessonsCompleted = decodeEnrollmentLessonsCompleted(
+        info.data as Buffer,
+      );
+      if (lessonsCompleted >= lessonCounts[i]) completed++;
+    }
+    return completed;
+  } catch {
+    return 0;
+  }
+}
+
 /** @deprecated use fetchChainActivity instead */
 export async function fetchActivityFromChain(
   user: PublicKey,

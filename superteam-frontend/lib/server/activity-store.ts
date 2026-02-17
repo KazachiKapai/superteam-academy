@@ -154,3 +154,42 @@ export async function getRecentActivity(
 export function getTotalCompleted(wallet: string): number {
   return totalCompletedByWallet.get(wallet) ?? 0;
 }
+
+/**
+ * Compute the current streak (consecutive active days ending today or yesterday).
+ */
+export function computeStreakFromDays(
+  days: Array<{ date: string; count: number }>,
+): number {
+  const today = toDateKey(new Date());
+  const yesterday = toDateKey(new Date(Date.now() - 86_400_000));
+
+  let streak = 0;
+  let started = false;
+  for (let i = days.length - 1; i >= 0; i--) {
+    const day = days[i];
+    if (!started) {
+      if (day.count > 0 && (day.date === today || day.date === yesterday)) {
+        started = true;
+        streak = 1;
+      } else if (day.date < yesterday) {
+        break;
+      }
+    } else {
+      if (day.count > 0) {
+        streak++;
+      } else {
+        break;
+      }
+    }
+  }
+  return streak;
+}
+
+/**
+ * Get the current activity streak for a wallet from chain + in-memory data.
+ */
+export async function getCurrentStreak(wallet: string): Promise<number> {
+  const { days } = await getActivityData(wallet);
+  return computeStreakFromDays(days);
+}

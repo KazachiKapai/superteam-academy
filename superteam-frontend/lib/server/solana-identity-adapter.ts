@@ -15,7 +15,8 @@ import {
   getCachedLeaderboard,
   getRankForWallet,
 } from "@/lib/server/leaderboard-cache";
-import { getTotalCompleted } from "@/lib/server/activity-store";
+import { getCurrentStreak } from "@/lib/server/activity-store";
+import { countCompletedCoursesOnChain } from "@/lib/server/academy-program";
 
 const XP_PER_LEVEL = 10_000;
 
@@ -87,15 +88,17 @@ export async function ensureWalletIdentitySynced(
 export async function getIdentitySnapshotForUser(
   user: AuthenticatedUser,
 ): Promise<IdentitySnapshot> {
-  const onChainLearner = await getLearnerProfileOnChain(
-    user.walletAddress,
-  ).catch(() => null);
+  const [onChainLearner, activityStreak, totalCompleted, entries] =
+    await Promise.all([
+      getLearnerProfileOnChain(user.walletAddress).catch(() => null),
+      getCurrentStreak(user.walletAddress),
+      countCompletedCoursesOnChain(user.walletAddress),
+      getCachedLeaderboard(),
+    ]);
   const learnerPda = getLearnerProfilePda(user.walletAddress);
   const level = onChainLearner?.level ?? 1;
   const xp = onChainLearner?.xpTotal ?? 0;
-  const streak = onChainLearner?.streakCurrent ?? 0;
-  const totalCompleted = getTotalCompleted(user.walletAddress);
-  const entries = await getCachedLeaderboard();
+  const streak = Math.max(onChainLearner?.streakCurrent ?? 0, activityStreak);
   const rank = getRankForWallet(entries, user.walletAddress);
 
   const badges: IdentityAchievement[] = BADGE_RULES.map((rule) => ({

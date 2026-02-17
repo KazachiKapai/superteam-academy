@@ -178,7 +178,8 @@ export async function getAllLearnerProfilesOnChain(): Promise<
     const out: OnChainLearnerProfile[] = [];
     for (const { pubkey, account } of accounts) {
       const data = account.data as Buffer;
-      if (data.length !== 56 && data.length !== 88) continue;
+      // LearnerProfile: 8 discriminator + 88 LEN = 96 bytes
+      if (data.length !== 96) continue;
       if (!data.subarray(0, 8).equals(LEARNER_DISCRIMINATOR)) continue;
       ensureOwnedByProgram(account.owner);
       out.push(decodeLearnerAccount(pubkey, data));
