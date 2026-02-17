@@ -17,7 +17,20 @@ export function PathsSection() {
 
   const handleUnlockClick = () => {
     if (!connected) {
-      setVisible(true)
+      try {
+        setTimeout(() => {
+          try {
+            setVisible(true)
+          } catch (err) {
+            console.error("Failed to open wallet modal:", err)
+            if (typeof window !== "undefined" && (window as any).solana?.isPhantom) {
+              ;(window as any).solana.connect().catch(() => undefined)
+            }
+          }
+        }, 100)
+      } catch (err) {
+        console.error("Wallet connection error:", err)
+      }
       return
     }
     void loginWithWallet().catch(() => undefined)

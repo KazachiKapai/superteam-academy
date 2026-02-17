@@ -81,7 +81,22 @@ export function Navbar() {
             <Button
               variant="outline"
               className="border-primary/30 text-primary hover:bg-primary/10"
-              onClick={() => setVisible(true)}
+              onClick={() => {
+                try {
+                  setTimeout(() => {
+                    try {
+                      setVisible(true)
+                    } catch (err) {
+                      console.error("Failed to open wallet modal:", err)
+                      if (typeof window !== "undefined" && (window as any).solana?.isPhantom) {
+                        ;(window as any).solana.connect().catch(() => undefined)
+                      }
+                    }
+                  }, 100)
+                } catch (err) {
+                  console.error("Wallet connection error:", err)
+                }
+              }}
             >
               <Wallet className="mr-2 h-4 w-4" />
               Connect Wallet

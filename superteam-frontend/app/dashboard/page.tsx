@@ -9,13 +9,28 @@ import { getCachedLeaderboard } from "@/lib/server/leaderboard-cache"
 
 export default async function DashboardPage() {
   const user = await requireAuthenticatedUser()
-  const [snapshot, courseSnapshots, activityDays, recentActivity, leaderboardEntries] = await Promise.all([
-    getIdentitySnapshotForUser(user),
-    getAllCourseProgressSnapshots(user.walletAddress),
-    Promise.resolve(getActivityDays(user.walletAddress, 365)),
-    Promise.resolve(getRecentActivity(user.walletAddress)),
-    getCachedLeaderboard(),
-  ])
+  let snapshot, courseSnapshots, activityDays, recentActivity, leaderboardEntries
+  try {
+    ;[snapshot, courseSnapshots, activityDays, recentActivity, leaderboardEntries] = await Promise.all([
+      getIdentitySnapshotForUser(user),
+      getAllCourseProgressSnapshots(user.walletAddress),
+      Promise.resolve(getActivityDays(user.walletAddress, 365)),
+      Promise.resolve(getRecentActivity(user.walletAddress)),
+      getCachedLeaderboard(),
+    ])
+  } catch (error: any) {
+    // Network error - use fallbacks
+    if (error?.message?.includes("fetch failed") || error?.message?.includes("Network error") || error?.message?.includes("ECONNREFUSED")) {
+      console.warn("Network error loading dashboard data, using fallbacks:", error.message)
+      snapshot = await getIdentitySnapshotForUser(user).catch(() => null)
+      courseSnapshots = []
+      activityDays = getActivityDays(user.walletAddress, 365)
+      recentActivity = getRecentActivity(user.walletAddress)
+      leaderboardEntries = []
+    } else {
+      throw error
+    }
+  }
   const courses = courseSnapshots.map((item) => item.course)
 
   return (

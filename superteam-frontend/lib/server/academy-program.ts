@@ -96,85 +96,126 @@ export function deriveEnrollmentPda(course: PublicKey, user: PublicKey): PublicK
 }
 
 export async function ensureCourseOnChain(courseId: string, lessonsCount: number, trackId: number) {
-  const { connection, backend } = getClient()
-  const coursePda = deriveCoursePda(courseId)
-  const existing = await connection.getAccountInfo(coursePda)
-  if (existing) return coursePda
+  try {
+    const { connection, backend } = getClient()
+    const coursePda = deriveCoursePda(courseId)
+    const existing = await connection.getAccountInfo(coursePda)
+    if (existing) return coursePda
 
-  const instruction = new TransactionInstruction({
-    programId: new PublicKey(ACADEMY_PROGRAM_ID),
-    keys: [
-      { pubkey: deriveConfigPda(), isSigner: false, isWritable: true },
-      { pubkey: coursePda, isSigner: false, isWritable: true },
-      { pubkey: backend.publicKey, isSigner: true, isWritable: true },
-      { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
-    ],
-    data: encodeCreateCourseArgs(courseId, lessonsCount, trackId),
-  })
-  const tx = new Transaction().add(instruction)
-  await sendAndConfirmTransaction(connection, tx, [backend], { commitment: "confirmed" })
+    const instruction = new TransactionInstruction({
+      programId: new PublicKey(ACADEMY_PROGRAM_ID),
+      keys: [
+        { pubkey: deriveConfigPda(), isSigner: false, isWritable: true },
+        { pubkey: coursePda, isSigner: false, isWritable: true },
+        { pubkey: backend.publicKey, isSigner: true, isWritable: true },
+        { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+      ],
+      data: encodeCreateCourseArgs(courseId, lessonsCount, trackId),
+    })
+    const tx = new Transaction().add(instruction)
+    await sendAndConfirmTransaction(connection, tx, [backend], { commitment: "confirmed" })
 
-  return coursePda
+    return coursePda
+  } catch (error: any) {
+    // Network errors - return PDA anyway (course may exist, we just can't verify)
+    if (error?.message?.includes("fetch failed") || error?.message?.includes("ECONNREFUSED") || error?.code === "ENOTFOUND") {
+      console.warn(`Network error ensuring course ${courseId}, returning PDA anyway:`, error.message)
+      return deriveCoursePda(courseId)
+    }
+    throw error
+  }
 }
 
 export async function fetchLearnerProfile(user: PublicKey): Promise<any | null> {
-  const { connection } = getClient()
-  const learner = deriveLearnerPda(user)
-  const info = await connection.getAccountInfo(learner)
-  return info ? { exists: true } : null
+  try {
+    const { connection } = getClient()
+    const learner = deriveLearnerPda(user)
+    const info = await connection.getAccountInfo(learner)
+    return info ? { exists: true } : null
+  } catch (error: any) {
+    // Network errors - assume no profile (safe fallback)
+    if (error?.message?.includes("fetch failed") || error?.message?.includes("ECONNREFUSED") || error?.code === "ENOTFOUND") {
+      return null
+    }
+    throw error
+  }
 }
 
 export async function fetchEnrollment(user: PublicKey, courseId: string): Promise<any | null> {
-  const { connection } = getClient()
-  const course = deriveCoursePda(courseId)
-  const enrollment = deriveEnrollmentPda(course, user)
-  const info = await connection.getAccountInfo(enrollment)
-  if (!info) return null
-  return {
-    lessonsCompleted: decodeEnrollmentLessonsCompleted(info.data),
+  try {
+    const { connection } = getClient()
+    const course = deriveCoursePda(courseId)
+    const enrollment = deriveEnrollmentPda(course, user)
+    const info = await connection.getAccountInfo(enrollment)
+    if (!info) return null
+    return {
+      lessonsCompleted: decodeEnrollmentLessonsCompleted(info.data),
+    }
+  } catch (error: any) {
+    // Network errors - assume not enrolled (safe fallback)
+    if (error?.message?.includes("fetch failed") || error?.message?.includes("ECONNREFUSED") || error?.code === "ENOTFOUND") {
+      return null
+    }
+    throw error
   }
 }
 
 export async function completeLessonOnChain(user: PublicKey, courseId: string): Promise<string> {
-  const { connection, backend } = getClient()
-  const course = deriveCoursePda(courseId)
-  const learner = deriveLearnerPda(user)
-  const enrollment = deriveEnrollmentPda(course, user)
+  try {
+    const { connection, backend } = getClient()
+    const course = deriveCoursePda(courseId)
+    const learner = deriveLearnerPda(user)
+    const enrollment = deriveEnrollmentPda(course, user)
 
-  const instruction = new TransactionInstruction({
-    programId: new PublicKey(ACADEMY_PROGRAM_ID),
-    keys: [
-      { pubkey: deriveConfigPda(), isSigner: false, isWritable: false },
-      { pubkey: learner, isSigner: false, isWritable: true },
-      { pubkey: course, isSigner: false, isWritable: true },
-      { pubkey: enrollment, isSigner: false, isWritable: true },
-      { pubkey: backend.publicKey, isSigner: true, isWritable: false },
-    ],
-    data: Buffer.from([77, 217, 53, 132, 204, 150, 169, 58]), // complete_lesson
-  })
-  const tx = new Transaction().add(instruction)
-  const sig = await sendAndConfirmTransaction(connection, tx, [backend], { commitment: "confirmed" })
-  return sig
+    const instruction = new TransactionInstruction({
+      programId: new PublicKey(ACADEMY_PROGRAM_ID),
+      keys: [
+        { pubkey: deriveConfigPda(), isSigner: false, isWritable: false },
+        { pubkey: learner, isSigner: false, isWritable: true },
+        { pubkey: course, isSigner: false, isWritable: true },
+        { pubkey: enrollment, isSigner: false, isWritable: true },
+        { pubkey: backend.publicKey, isSigner: true, isWritable: false },
+      ],
+      data: Buffer.from([77, 217, 53, 132, 204, 150, 169, 58]), // complete_lesson
+    })
+    const tx = new Transaction().add(instruction)
+    const sig = await sendAndConfirmTransaction(connection, tx, [backend], { commitment: "confirmed" })
+    return sig
+  } catch (error: any) {
+    // Network errors - rethrow with clearer message
+    if (error?.message?.includes("fetch failed") || error?.message?.includes("ECONNREFUSED") || error?.code === "ENOTFOUND") {
+      throw new Error("Network error: Unable to connect to Solana RPC. Please check your internet connection.")
+    }
+    throw error
+  }
 }
 
 export async function finalizeCourseOnChain(user: PublicKey, courseId: string): Promise<string> {
-  const { connection, backend } = getClient()
-  const course = deriveCoursePda(courseId)
-  const learner = deriveLearnerPda(user)
-  const enrollment = deriveEnrollmentPda(course, user)
+  try {
+    const { connection, backend } = getClient()
+    const course = deriveCoursePda(courseId)
+    const learner = deriveLearnerPda(user)
+    const enrollment = deriveEnrollmentPda(course, user)
 
-  const instruction = new TransactionInstruction({
-    programId: new PublicKey(ACADEMY_PROGRAM_ID),
-    keys: [
-      { pubkey: deriveConfigPda(), isSigner: false, isWritable: false },
-      { pubkey: learner, isSigner: false, isWritable: true },
-      { pubkey: course, isSigner: false, isWritable: true },
-      { pubkey: enrollment, isSigner: false, isWritable: true },
-      { pubkey: backend.publicKey, isSigner: true, isWritable: false },
+    const instruction = new TransactionInstruction({
+      programId: new PublicKey(ACADEMY_PROGRAM_ID),
+      keys: [
+        { pubkey: deriveConfigPda(), isSigner: false, isWritable: false },
+        { pubkey: learner, isSigner: false, isWritable: true },
+        { pubkey: course, isSigner: false, isWritable: true },
+        { pubkey: enrollment, isSigner: false, isWritable: true },
+        { pubkey: backend.publicKey, isSigner: true, isWritable: false },
     ],
-    data: Buffer.from([68, 189, 122, 239, 39, 121, 16, 218]), // finalize_course
-  })
-  const tx = new Transaction().add(instruction)
-  const sig = await sendAndConfirmTransaction(connection, tx, [backend], { commitment: "confirmed" })
-  return sig
+      data: Buffer.from([68, 189, 122, 239, 39, 121, 16, 218]), // finalize_course
+    })
+    const tx = new Transaction().add(instruction)
+    const sig = await sendAndConfirmTransaction(connection, tx, [backend], { commitment: "confirmed" })
+    return sig
+  } catch (error: any) {
+    // Network errors - rethrow with clearer message
+    if (error?.message?.includes("fetch failed") || error?.message?.includes("ECONNREFUSED") || error?.code === "ENOTFOUND") {
+      throw new Error("Network error: Unable to connect to Solana RPC. Please check your internet connection.")
+    }
+    throw error
+  }
 }

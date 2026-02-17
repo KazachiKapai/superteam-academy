@@ -46,10 +46,26 @@ export async function getCourseProgressSnapshot(
   const meta = getCatalogCourseMeta(slug)
   if (!meta) return null
 
-  await ensureCourseOnChain(meta.slug, meta.lessonsCount, meta.trackId)
+  try {
+    await ensureCourseOnChain(meta.slug, meta.lessonsCount, meta.trackId)
+  } catch (error: any) {
+    // If network error, continue with fallback (course may exist, we just can't verify)
+    if (!error?.message?.includes("Network error")) {
+      throw error
+    }
+  }
 
   const user = new PublicKey(walletAddress)
-  const enrollment = await fetchEnrollment(user, meta.slug)
+  let enrollment: any = null
+  try {
+    enrollment = await fetchEnrollment(user, meta.slug)
+  } catch (error: any) {
+    // Network error - assume not enrolled (safe fallback)
+    if (!error?.message?.includes("fetch failed") && !error?.message?.includes("ECONNREFUSED") && error?.code !== "ENOTFOUND") {
+      throw error
+    }
+  }
+
   const completedLessons = enrollment ? Number(enrollment.lessonsCompleted) : 0
   const course = cloneCourse(slug)
   if (!course) return null

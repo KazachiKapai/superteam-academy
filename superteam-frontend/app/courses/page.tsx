@@ -6,7 +6,18 @@ import { getAllCourseProgressSnapshots } from "@/lib/server/academy-progress-ada
 
 export default async function CoursesPage() {
   const user = await requireAuthenticatedUser()
-  const snapshots = await getAllCourseProgressSnapshots(user.walletAddress)
+  let snapshots: Awaited<ReturnType<typeof getAllCourseProgressSnapshots>>
+  try {
+    snapshots = await getAllCourseProgressSnapshots(user.walletAddress)
+  } catch (error: any) {
+    // Network error - show courses without progress (offline mode)
+    if (error?.message?.includes("fetch failed") || error?.message?.includes("Network error") || error?.message?.includes("ECONNREFUSED")) {
+      console.warn("Network error loading course progress, showing courses without progress:", error.message)
+      snapshots = []
+    } else {
+      throw error
+    }
+  }
   const courseList = snapshots.map((item) => item.course)
 
   return (

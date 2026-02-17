@@ -136,34 +136,58 @@ function decodeLearnerAccount(address: PublicKey, data: Buffer): OnChainLearnerP
 }
 
 export async function getAcademyConfigOnChain(): Promise<OnChainConfig | null> {
-  const configPda = deriveConfigPda()
-  const accountInfo = await connection.getAccountInfo(configPda)
-  if (!accountInfo) return null
-  ensureOwnedByProgram(accountInfo.owner)
-  return decodeConfigAccount(configPda, accountInfo.data)
+  try {
+    const configPda = deriveConfigPda()
+    const accountInfo = await connection.getAccountInfo(configPda)
+    if (!accountInfo) return null
+    ensureOwnedByProgram(accountInfo.owner)
+    return decodeConfigAccount(configPda, accountInfo.data)
+  } catch (error: any) {
+    // Network errors - return null (safe fallback)
+    if (error?.message?.includes("fetch failed") || error?.message?.includes("ECONNREFUSED") || error?.code === "ENOTFOUND") {
+      return null
+    }
+    throw error
+  }
 }
 
 const LEARNER_DISCRIMINATOR = Buffer.from([198, 114, 44, 71, 161, 227, 116, 166])
 
 export async function getAllLearnerProfilesOnChain(): Promise<OnChainLearnerProfile[]> {
-  const accounts = await connection.getProgramAccounts(programId, { commitment: "confirmed" })
-  const out: OnChainLearnerProfile[] = []
-  for (const { pubkey, account } of accounts) {
-    const data = account.data as Buffer
-    if (data.length !== 56 && data.length !== 88) continue
-    if (!data.subarray(0, 8).equals(LEARNER_DISCRIMINATOR)) continue
-    ensureOwnedByProgram(account.owner)
-    out.push(decodeLearnerAccount(pubkey, data))
+  try {
+    const accounts = await connection.getProgramAccounts(programId, { commitment: "confirmed" })
+    const out: OnChainLearnerProfile[] = []
+    for (const { pubkey, account } of accounts) {
+      const data = account.data as Buffer
+      if (data.length !== 56 && data.length !== 88) continue
+      if (!data.subarray(0, 8).equals(LEARNER_DISCRIMINATOR)) continue
+      ensureOwnedByProgram(account.owner)
+      out.push(decodeLearnerAccount(pubkey, data))
+    }
+    return out
+  } catch (error: any) {
+    // Network errors - return empty array (safe fallback)
+    if (error?.message?.includes("fetch failed") || error?.message?.includes("ECONNREFUSED") || error?.code === "ENOTFOUND") {
+      return []
+    }
+    throw error
   }
-  return out
 }
 
 export async function getLearnerProfileOnChain(
   walletAddress: string,
 ): Promise<OnChainLearnerProfile | null> {
-  const learnerPda = deriveLearnerPda(walletAddress)
-  const accountInfo = await connection.getAccountInfo(learnerPda)
-  if (!accountInfo) return null
-  ensureOwnedByProgram(accountInfo.owner)
-  return decodeLearnerAccount(learnerPda, accountInfo.data)
+  try {
+    const learnerPda = deriveLearnerPda(walletAddress)
+    const accountInfo = await connection.getAccountInfo(learnerPda)
+    if (!accountInfo) return null
+    ensureOwnedByProgram(accountInfo.owner)
+    return decodeLearnerAccount(learnerPda, accountInfo.data)
+  } catch (error: any) {
+    // Network errors - return null (safe fallback)
+    if (error?.message?.includes("fetch failed") || error?.message?.includes("ECONNREFUSED") || error?.code === "ENOTFOUND") {
+      return null
+    }
+    throw error
+  }
 }

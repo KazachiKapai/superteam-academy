@@ -10,7 +10,18 @@ export default async function LessonPage({
 }) {
   const user = await requireAuthenticatedUser()
   const { slug, id } = await params
-  const snapshot = await getCourseProgressSnapshot(user.walletAddress, slug)
+  let snapshot
+  try {
+    snapshot = await getCourseProgressSnapshot(user.walletAddress, slug)
+  } catch (error: any) {
+    // Network error - show lesson without progress
+    if (error?.message?.includes("fetch failed") || error?.message?.includes("Network error") || error?.message?.includes("ECONNREFUSED")) {
+      console.warn("Network error loading lesson progress:", error.message)
+      snapshot = null
+    } else {
+      throw error
+    }
+  }
   if (!snapshot) return notFound()
   const course = snapshot.course
 

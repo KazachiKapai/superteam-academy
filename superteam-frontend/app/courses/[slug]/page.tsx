@@ -8,7 +8,18 @@ import { notFound } from "next/navigation"
 export default async function CourseDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const user = await requireAuthenticatedUser()
   const { slug } = await params
-  const snapshot = await getCourseProgressSnapshot(user.walletAddress, slug)
+  let snapshot
+  try {
+    snapshot = await getCourseProgressSnapshot(user.walletAddress, slug)
+  } catch (error: any) {
+    // Network error - show course without progress
+    if (error?.message?.includes("fetch failed") || error?.message?.includes("Network error") || error?.message?.includes("ECONNREFUSED")) {
+      console.warn("Network error loading course progress:", error.message)
+      snapshot = null
+    } else {
+      throw error
+    }
+  }
   if (!snapshot) return notFound()
 
   return (

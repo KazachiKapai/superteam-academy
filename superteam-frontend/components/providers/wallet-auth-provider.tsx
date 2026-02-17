@@ -97,7 +97,18 @@ export function WalletAuthProvider({ children }: WalletAuthProviderProps) {
 
       const { message } = (await nonceResponse.json()) as { message: string }
       const messageBytes = new TextEncoder().encode(message)
-      const signedMessage = await signMessage(messageBytes)
+      let signedMessage: Uint8Array
+      try {
+        signedMessage = await signMessage(messageBytes)
+      } catch (signError: any) {
+        // User rejected the signature request - this is expected, don't treat as error
+        if (signError?.message?.includes("rejected") || signError?.name === "WalletSignMessageError") {
+          setIsLoading(false)
+          setAuthError(null)
+          return
+        }
+        throw signError
+      }
       const signature = bs58.encode(signedMessage)
 
       const verifyResponse = await fetch("/api/auth/wallet/verify", {
@@ -118,11 +129,19 @@ export function WalletAuthProvider({ children }: WalletAuthProviderProps) {
       setUser(verifyData.user ?? null)
       setAuthError(null)
       lastAutoAuthAddress.current = walletAddress
-    } catch (error) {
+    } catch (error: any) {
       setIsAuthenticated(false)
       setUser(null)
-      setAuthError(error instanceof Error ? error.message : "Wallet authentication failed.")
-      throw error
+      // Don't show error for user rejection - it's expected behavior
+      if (error?.message?.includes("rejected") || error?.name === "WalletSignMessageError") {
+        setAuthError(null)
+      } else {
+        setAuthError(error instanceof Error ? error.message : "Wallet authentication failed.")
+      }
+      // Don't re-throw user rejection errors
+      if (!error?.message?.includes("rejected") && error?.name !== "WalletSignMessageError") {
+        throw error
+      }
     } finally {
       setIsLoading(false)
     }

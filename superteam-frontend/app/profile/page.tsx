@@ -7,11 +7,24 @@ import { getAllCourseProgressSnapshots } from "@/lib/server/academy-progress-ada
 
 export default async function Page() {
   const user = await requireAuthenticatedUser()
-  const [snapshot, activityDays, courseSnapshots] = await Promise.all([
-    getIdentitySnapshotForUser(user),
-    Promise.resolve(getActivityDays(user.walletAddress, 365)),
-    getAllCourseProgressSnapshots(user.walletAddress),
-  ])
+  let snapshot, activityDays, courseSnapshots
+  try {
+    ;[snapshot, activityDays, courseSnapshots] = await Promise.all([
+      getIdentitySnapshotForUser(user),
+      Promise.resolve(getActivityDays(user.walletAddress, 365)),
+      getAllCourseProgressSnapshots(user.walletAddress),
+    ])
+  } catch (error: any) {
+    // Network error - use fallbacks
+    if (error?.message?.includes("fetch failed") || error?.message?.includes("Network error") || error?.message?.includes("ECONNREFUSED")) {
+      console.warn("Network error loading profile data, using fallbacks:", error.message)
+      snapshot = await getIdentitySnapshotForUser(user).catch(() => null)
+      activityDays = getActivityDays(user.walletAddress, 365)
+      courseSnapshots = []
+    } else {
+      throw error
+    }
+  }
   const completedCourses = courseSnapshots
     .filter((s) => s.course.progress >= 100)
     .map((s) => s.course)
