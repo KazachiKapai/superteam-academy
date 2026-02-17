@@ -23,6 +23,7 @@ import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "
 import { Progress } from "@/components/ui/progress"
 import type { Course } from "@/lib/mock-data"
 import type { IdentitySnapshot } from "@/lib/identity/types"
+import { ActivityHeatmap } from "@/components/activity-heatmap"
 
 type SkillMap = {
   rust: number
@@ -115,30 +116,7 @@ function shortAddress(mint: string): string {
   return `${mint.slice(0, 4)}...${mint.slice(-4)}`
 }
 
-function buildContributionWindow(activityDays: Array<{ date: string; intensity: number }>) {
-  const byDate = new Map<string, number>()
-  for (const day of activityDays) byDate.set(day.date, day.intensity)
-  if (activityDays.length === 0) {
-    return { weeks: [] as Date[][], byDate, activeDays: 0 }
-  }
-  const first = new Date(activityDays[0]!.date)
-  const last = new Date(activityDays[activityDays.length - 1]!.date)
-  const start = new Date(first)
-  start.setDate(start.getDate() - start.getDay())
-  const end = new Date(last)
-  end.setDate(end.getDate() + (6 - end.getDay()))
 
-  const days: Date[] = []
-  for (const cursor = new Date(start); cursor <= end; cursor.setDate(cursor.getDate() + 1)) {
-    days.push(new Date(cursor))
-  }
-  const weeks: Date[][] = []
-  for (let i = 0; i < days.length; i += 7) {
-    weeks.push(days.slice(i, i + 7))
-  }
-  const activeDays = activityDays.filter((day) => day.intensity > 0).length
-  return { weeks, byDate, activeDays }
-}
 
 export default function ProfilePageComponent({
   username: usernameParam,
@@ -186,7 +164,6 @@ export default function ProfilePageComponent({
 
   const chartData = skillRows.map((row) => ({ skill: row.label, value: row.value }))
   const xpProgress = Math.min(100, Math.round((user.xp / user.xpToNext) * 100))
-  const contributions = buildContributionWindow(activityDays)
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 lg:px-6 lg:py-10">
@@ -254,72 +231,10 @@ export default function ProfilePageComponent({
 
       <div className="mt-6 grid gap-6 xl:grid-cols-3">
         <div className="space-y-6 xl:col-span-2">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg">Activity</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="mb-3 text-xs text-muted-foreground">
-                {contributions.activeDays} active days in the last year
-              </p>
-              <div className="overflow-x-auto">
-                <div className="min-w-[880px]">
-                  <div className="mb-1 ml-8 flex gap-1 text-[10px] text-muted-foreground">
-                    {contributions.weeks.map((week, index) => {
-                      const showMonth =
-                        index === 0 ||
-                        week[0].getMonth() !== contributions.weeks[index - 1][0].getMonth()
-
-                      return (
-                        <div key={week[0].toISOString()} className="w-3.5">
-                          {showMonth ? week[0].toLocaleString("en-US", { month: "short" }) : ""}
-                        </div>
-                      )
-                    })}
-                  </div>
-
-                  <div className="flex gap-2">
-                    <div className="grid grid-rows-7 gap-1 text-[10px] text-muted-foreground">
-                      <span />
-                      <span>Mon</span>
-                      <span />
-                      <span>Wed</span>
-                      <span />
-                      <span>Fri</span>
-                      <span />
-                    </div>
-
-                    <div className="flex gap-1">
-                      {contributions.weeks.map((week) => (
-                        <div key={week[0].toISOString()} className="grid grid-rows-7 gap-1">
-                          {week.map((day) => {
-                            const key = `${day.getFullYear()}-${`${day.getMonth() + 1}`.padStart(2, "0")}-${`${day.getDate()}`.padStart(2, "0")}`
-                            const intensity = contributions.byDate.get(key) ?? 0
-                            return (
-                              <div
-                                key={key}
-                                className={`h-3.5 w-3.5 rounded-[3px] border border-border/40 ${activityColor(intensity)}`}
-                                title={`${key}: ${intensity > 0 ? `${intensity} activities` : "No activity"}`}
-                              />
-                            )
-                          })}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="mt-3 flex items-center justify-end gap-2 text-[10px] text-muted-foreground">
-                <span>Less</span>
-                <div className="h-3.5 w-3.5 rounded-[3px] border border-border/40 bg-secondary" />
-                <div className="h-3.5 w-3.5 rounded-[3px] border border-border/40 bg-emerald-900/55" />
-                <div className="h-3.5 w-3.5 rounded-[3px] border border-border/40 bg-emerald-700/70" />
-                <div className="h-3.5 w-3.5 rounded-[3px] border border-border/40 bg-emerald-500/85" />
-                <div className="h-3.5 w-3.5 rounded-[3px] border border-border/40 bg-emerald-400" />
-                <span>More</span>
-              </div>
-            </CardContent>
-          </Card>
+          <section>
+            <h2 className="text-lg font-semibold text-foreground mb-4">Activity</h2>
+            <ActivityHeatmap activityDays={activityDays} />
+          </section>
 
           <Card>
             <CardHeader className="pb-3">
@@ -498,10 +413,4 @@ function StatPill({
   )
 }
 
-function activityColor(intensity: number): string {
-  if (intensity <= 0) return "bg-secondary"
-  if (intensity === 1) return "bg-emerald-900/55"
-  if (intensity === 2) return "bg-emerald-700/70"
-  if (intensity === 3) return "bg-emerald-500/85"
-  return "bg-emerald-400"
-}
+

@@ -23,6 +23,7 @@ import { type Course, courses as mockCourses } from "@/lib/mock-data"
 import type { IdentitySnapshot } from "@/lib/identity/types"
 import type { LeaderboardEntry } from "@/lib/server/leaderboard-cache"
 import type { RecentActivityItem } from "@/lib/server/activity-store"
+import { ActivityHeatmap } from "@/components/activity-heatmap"
 import { LeaderboardWidget } from "./leaderboard-widget"
 
 const badgeIcons: Record<string, typeof Zap> = {
@@ -65,8 +66,6 @@ export function DashboardContent({
     c => c.progress > 0 && c.progress < 100,
   )
   const recommendedCourses = courses.filter(c => c.progress === 0).slice(0, 2)
-  const heatmap = buildContributionHeatmap(activityDays)
-
   return (
     <div>
       {/* Welcome header */}
@@ -223,89 +222,7 @@ export function DashboardContent({
             <h2 className="text-lg font-semibold text-foreground mb-4">
               Activity Streak
             </h2>
-            <div className="rounded-xl border border-border bg-card p-5">
-              <div className="flex items-center gap-3 mb-2">
-                <Flame className="h-5 w-5 text-[hsl(var(--gold))] animate-fire" />
-                <span className="text-sm font-semibold text-foreground">
-                  {profile?.streak ?? 0} day streak!
-                </span>
-              </div>
-
-              <p className="mb-3 text-xs text-muted-foreground">
-                {heatmap.activeDays} active days in the last year
-              </p>
-
-              <div className="overflow-x-auto">
-                <div className="min-w-[760px]">
-                  <div className="ml-8 mb-2 flex gap-1 text-[10px] text-muted-foreground">
-                    {heatmap.weeks.map((week, weekIndex) => {
-                      const showLabel =
-                        weekIndex === 0 ||
-                        week[0].getMonth() !==
-                          heatmap.weeks[weekIndex - 1][0].getMonth()
-
-                      return (
-                        <div key={week[0].toISOString()} className="w-3">
-                          {showLabel ? monthLabel(week[0]) : ""}
-                        </div>
-                      )
-                    })}
-                  </div>
-
-                  <div className="flex gap-2">
-                    <div className="grid grid-rows-7 gap-1 text-[10px] text-muted-foreground">
-                      <span />
-                      <span>Mon</span>
-                      <span />
-                      <span>Wed</span>
-                      <span />
-                      <span>Fri</span>
-                      <span />
-                    </div>
-
-                    <div className="flex gap-1">
-                      {heatmap.weeks.map(week => (
-                        <div
-                          key={week[0].toISOString()}
-                          className="grid grid-rows-7 gap-1"
-                        >
-                          {week.map(date => {
-                            const dateKey = toDateKey(date)
-                            const intensity =
-                              heatmap.intensityByDate.get(dateKey) ?? 0
-                            return (
-                              <div
-                                key={dateKey}
-                                className={`h-3 w-3 rounded-[3px] border border-border/40 ${intensityClass(
-                                  intensity,
-                                )}`}
-                                title={`${dateKey}: ${
-                                  intensity > 0
-                                    ? `${intensity} activities`
-                                    : "No activity"
-                                }`}
-                              />
-                            )
-                          })}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-end gap-2 mt-3">
-                <span className="text-[10px] text-muted-foreground">Less</span>
-                <div className="flex gap-1">
-                  <div className="h-3 w-3 rounded-[3px] border border-border/40 bg-secondary" />
-                  <div className="h-3 w-3 rounded-[3px] border border-border/40 bg-emerald-900/55" />
-                  <div className="h-3 w-3 rounded-[3px] border border-border/40 bg-emerald-700/70" />
-                  <div className="h-3 w-3 rounded-[3px] border border-border/40 bg-emerald-500/85" />
-                  <div className="h-3 w-3 rounded-[3px] border border-border/40 bg-emerald-400" />
-                </div>
-                <span className="text-[10px] text-muted-foreground">More</span>
-              </div>
-            </div>
+            <ActivityHeatmap activityDays={activityDays} />
           </section>
 
           {/* Recommended courses */}
@@ -467,70 +384,4 @@ function StatCard({
   )
 }
 
-function toDateKey(date: Date): string {
-  const year = date.getFullYear()
-  const month = `${date.getMonth() + 1}`.padStart(2, "0")
-  const day = `${date.getDate()}`.padStart(2, "0")
-  return `${year}-${month}-${day}`
-}
 
-function fromDateKey(dateKey: string): Date {
-  const [year, month, day] = dateKey.split("-").map(Number)
-  return new Date(year, month - 1, day)
-}
-
-function monthLabel(date: Date): string {
-  return date.toLocaleString("en-US", { month: "short" })
-}
-
-function intensityClass(intensity: number): string {
-  if (intensity <= 0) return "bg-secondary"
-  if (intensity === 1) return "bg-emerald-900/55"
-  if (intensity === 2) return "bg-emerald-700/70"
-  if (intensity === 3) return "bg-emerald-500/85"
-  return "bg-emerald-400"
-}
-
-function buildContributionHeatmap(
-  streakDays: Array<{ date: string; intensity: number }>,
-): {
-  weeks: Date[][]
-  intensityByDate: Map<string, number>
-  activeDays: number
-} {
-  if (streakDays.length === 0) {
-    return { weeks: [], intensityByDate: new Map<string, number>(), activeDays: 0 }
-  }
-
-  const intensityByDate = new Map<string, number>()
-  for (const day of streakDays) {
-    intensityByDate.set(day.date, day.intensity)
-  }
-
-  const activeDays = streakDays.filter(day => day.intensity > 0).length
-
-  const latestDate = fromDateKey(streakDays[streakDays.length - 1].date)
-  const earliestDate = fromDateKey(streakDays[0].date)
-
-  const gridStart = new Date(earliestDate)
-  gridStart.setDate(gridStart.getDate() - gridStart.getDay())
-
-  const gridEnd = new Date(latestDate)
-  gridEnd.setDate(gridEnd.getDate() + (6 - gridEnd.getDay()))
-
-  const days: Date[] = []
-  for (
-    const cursor = new Date(gridStart);
-    cursor <= gridEnd;
-    cursor.setDate(cursor.getDate() + 1)
-  ) {
-    days.push(new Date(cursor))
-  }
-
-  const weeks: Date[][] = []
-  for (let i = 0; i < days.length; i += 7) {
-    weeks.push(days.slice(i, i + 7))
-  }
-
-  return { weeks, intensityByDate, activeDays }
-}
