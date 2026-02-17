@@ -1,5 +1,4 @@
 import LeaderboardPage from "@/components/leaderboard/LeaderboardPage";
-import { Navbar } from "@/components/navbar";
 import { requireAuthenticatedUser } from "@/lib/server/auth-adapter";
 import {
   getCachedLeaderboard,
@@ -30,10 +29,5 @@ export default async function Page() {
     }
   }
 
-  return (
-    <div>
-      <Navbar />
-      <LeaderboardPage entries={displayEntries} me={me} />
-    </div>
-  );
+  return <LeaderboardPage entries={displayEntries} me={me} />;
 }

@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import {
   Zap,
   Flame,
@@ -60,6 +63,7 @@ export function DashboardContent({
   recentActivity?: RecentActivityItem[];
   leaderboardEntries?: LeaderboardEntry[];
 }) {
+  const t = useTranslations("dashboard");
   const courses = coursesData ?? [];
   const profile = identity?.profile;
   const inProgressCourses = courses.filter(
@@ -74,17 +78,18 @@ export function DashboardContent({
       <div className="flex flex-col gap-4 mb-8 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground lg:text-3xl">
-            Welcome back, {(profile?.name ?? "there").split(" ")[0]}
+            {t("welcomeBack", {
+              name: (profile?.name ?? "there").split(" ")[0],
+            })}
           </h1>
           <p className="mt-1 text-muted-foreground">
-            Keep up the momentum! You{"'"}re on a {profile?.streak ?? 0}-day
-            streak.
+            {t("streakMessage", { count: profile?.streak ?? 0 })}
           </p>
         </div>
         <Link href="/courses">
           <Button className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2">
             <BookOpen className="h-4 w-4" />
-            Browse Courses
+            {t("browseAllCourses")}
           </Button>
         </Link>
       </div>
@@ -93,28 +98,28 @@ export function DashboardContent({
       <div className="grid grid-cols-2 gap-4 mb-8 lg:grid-cols-4">
         <StatCard
           icon={Zap}
-          label="Total XP"
+          label={t("totalXp")}
           value={(profile?.xp ?? 0).toLocaleString()}
           color="text-primary"
           bgColor="bg-primary/10"
         />
         <StatCard
           icon={Flame}
-          label="Day Streak"
+          label={t("dayStreak")}
           value={`${profile?.streak ?? 0}`}
           color="text-[hsl(var(--gold))]"
           bgColor="bg-[hsl(var(--gold))]/10"
         />
         <StatCard
           icon={Trophy}
-          label="Global Rank"
+          label={t("globalRank")}
           value={`#${profile?.rank ?? "—"}`}
           color="text-primary"
           bgColor="bg-primary/10"
         />
         <StatCard
           icon={Target}
-          label="Level"
+          label={t("level", { level: profile?.level ?? 1 })}
           value={`${profile?.level ?? 1}`}
           color="text-[hsl(var(--gold))]"
           bgColor="bg-[hsl(var(--gold))]/10"
@@ -127,7 +132,7 @@ export function DashboardContent({
           <div className="flex items-center gap-2">
             <TrendingUp className="h-4 w-4 text-primary" />
             <span className="text-sm font-medium text-foreground">
-              Level {profile?.level ?? 1}
+              {t("level", { level: profile?.level ?? 1 })}
             </span>
           </div>
           <span className="text-xs text-muted-foreground">
@@ -144,7 +149,8 @@ export function DashboardContent({
             0,
             (profile?.xpToNext ?? 10000) - (profile?.xp ?? 0),
           ).toLocaleString()}{" "}
-          XP until Level {(profile?.level ?? 1) + 1}
+          {t("xpToNextLevel", { xp: "" })}{" "}
+          {t("level", { level: (profile?.level ?? 1) + 1 })}
         </p>
       </div>
 
@@ -154,7 +160,7 @@ export function DashboardContent({
           {/* Current courses */}
           <section>
             <h2 className="text-lg font-semibold text-foreground mb-4">
-              Continue Learning
+              {t("continueLearning")}
             </h2>
             <div className="space-y-3">
               {inProgressCourses.map((course) => {
@@ -211,7 +217,7 @@ export function DashboardContent({
                           size="sm"
                           className="bg-primary text-primary-foreground hover:bg-primary/90 gap-1 shrink-0"
                         >
-                          Resume
+                          {t("resume")}
                           <ArrowRight className="h-3.5 w-3.5" />
                         </Button>
                       </Link>
@@ -225,7 +231,7 @@ export function DashboardContent({
           {/* Streak calendar */}
           <section>
             <h2 className="text-lg font-semibold text-foreground mb-4">
-              Activity Streak
+              {t("activityStreak")}
             </h2>
             <ActivityHeatmap activityDays={activityDays} />
           </section>
@@ -233,7 +239,7 @@ export function DashboardContent({
           {/* Recommended courses */}
           <section>
             <h2 className="text-lg font-semibold text-foreground mb-4">
-              Recommended for You
+              {t("recommended")}
             </h2>
             {recommendedCourses.length > 0 ? (
               <div className="grid gap-4 sm:grid-cols-2">
@@ -278,7 +284,7 @@ export function DashboardContent({
                 <Link href="/courses">
                   <Button size="sm" variant="outline" className="gap-1.5">
                     <BookOpen className="h-3.5 w-3.5" />
-                    View All Courses
+                    {t("browseAllCourses")}
                   </Button>
                 </Link>
               </div>
@@ -292,7 +298,7 @@ export function DashboardContent({
           {/* Badges */}
           <section>
             <h2 className="text-lg font-semibold text-foreground mb-4">
-              Achievements
+              {t("achievements")}
             </h2>
             <div className="rounded-xl border border-border bg-card p-5">
               <div className="grid grid-cols-4 gap-3">
@@ -333,13 +339,13 @@ export function DashboardContent({
           {/* Recent activity */}
           <section>
             <h2 className="text-lg font-semibold text-foreground mb-4">
-              Recent Activity
+              {t("recentActivity")}
             </h2>
             <div className="rounded-xl border border-border bg-card overflow-hidden">
               <div className="divide-y divide-border max-h-[400px] overflow-y-auto">
                 {recentActivity.length === 0 ? (
                   <p className="px-4 py-6 text-sm text-muted-foreground text-center">
-                    No recent activity. Complete a lesson to see it here.
+                    {t("noActivity")}
                   </p>
                 ) : (
                   recentActivity.map((activity, i) => (

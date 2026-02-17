@@ -85,6 +85,17 @@ export async function ensureWalletIdentitySynced(
   });
 }
 
+export async function getIdentitySnapshotForWallet(
+  walletAddress: string,
+): Promise<IdentitySnapshot> {
+  const username = `user_${walletAddress.slice(0, 6).toLowerCase()}`;
+  return getIdentitySnapshotForUser({
+    id: walletAddress,
+    walletAddress,
+    username,
+  });
+}
+
 export async function getIdentitySnapshotForUser(
   user: AuthenticatedUser,
 ): Promise<IdentitySnapshot> {

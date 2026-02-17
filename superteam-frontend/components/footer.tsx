@@ -1,6 +1,9 @@
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
-import { Zap, Github, Twitter } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { Github, Twitter } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
@@ -26,6 +29,7 @@ const footerLinks = {
 };
 
 export function Footer() {
+  const t = useTranslations("footer");
   return (
     <footer className="border-t border-border bg-background">
       <div className="mx-auto max-w-7xl px-4 py-12 lg:px-6">
@@ -76,7 +80,7 @@ export function Footer() {
         {/* Bottom bar */}
         <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-border pt-8 md:flex-row">
           <p className="text-xs text-muted-foreground">
-            2026 SuperTeam. All rights reserved.
+            2026 SuperTeam. {t("copyright")}
           </p>
           <div className="flex items-center gap-4">
             <a

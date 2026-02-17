@@ -1,5 +1,4 @@
 import ProfilePageComponent from "@/components/profile/ProfilePageComponent";
-import { Navbar } from "@/components/navbar";
 import { requireAuthenticatedUser } from "@/lib/server/auth-adapter";
 import { getIdentitySnapshotForUser } from "@/lib/server/solana-identity-adapter";
 import { getActivityDays } from "@/lib/server/activity-store";
@@ -35,13 +34,10 @@ export default async function Page() {
   const allCourses = courseSnapshots.map((s) => s.course);
 
   return (
-    <div>
-      <Navbar />
-      <ProfilePageComponent
-        identity={snapshot}
-        activityDays={activityDays}
-        allCourses={allCourses}
-      />
-    </div>
+    <ProfilePageComponent
+      identity={snapshot}
+      activityDays={activityDays}
+      allCourses={allCourses}
+    />
   );
 }

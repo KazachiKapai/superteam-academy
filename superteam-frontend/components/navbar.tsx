@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
+import { useTranslations } from "next-intl";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useWalletModal } from "@solana/wallet-adapter-react-ui";
 import {
@@ -39,15 +40,20 @@ import { useIdentitySnapshot } from "@/hooks/use-identity-snapshot";
 import { LanguageSwitcher } from "@/components/language-switcher";
 
 const navLinks = [
-  { href: "/roadmaps", label: "Roadmaps", icon: Map, public: true },
-  { href: "/courses", label: "Courses", icon: BookOpen, public: false },
+  { href: "/roadmaps", key: "roadmaps" as const, icon: Map, public: true },
+  { href: "/courses", key: "courses" as const, icon: BookOpen, public: false },
   {
     href: "/dashboard",
-    label: "Dashboard",
+    key: "dashboard" as const,
     icon: LayoutDashboard,
     public: false,
   },
-  { href: "/leaderboard", label: "Leaderboard", icon: Trophy, public: false },
+  {
+    href: "/leaderboard",
+    key: "leaderboard" as const,
+    icon: Trophy,
+    public: false,
+  },
 ];
 
 function openWalletModal(setVisible: (v: boolean) => void) {
@@ -73,6 +79,7 @@ function openWalletModal(setVisible: (v: boolean) => void) {
 export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const router = useRouter();
+  const t = useTranslations("nav");
   const { connected, publicKey } = useWallet();
   const { setVisible } = useWalletModal();
   const { isLoading, isAuthenticated, user, status, logout } = useWalletAuth();
@@ -109,19 +116,19 @@ export function Navbar() {
                 className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
               >
                 <link.icon className="h-4 w-4" />
-                {link.label}
+                {t(link.key)}
               </Link>
             ))}
           </nav>
         </div>
 
         {/* Right side - Desktop */}
-        <div className="hidden items-center gap-3 md:flex">
+        <div className="hidden items-center gap-3 md:flex min-h-[2.5rem]">
           {/* Language switcher */}
           <LanguageSwitcher />
 
-          {/* Theme toggle (always visible) */}
-          {mounted && (
+          {/* Theme toggle */}
+          {mounted ? (
             <Button
               variant="ghost"
               size="icon"
@@ -134,6 +141,8 @@ export function Navbar() {
                 <Moon className="h-4 w-4" />
               )}
             </Button>
+          ) : (
+            <div className="h-8 w-8" />
           )}
 
           {showConnectButton && (
@@ -143,7 +152,7 @@ export function Navbar() {
               onClick={() => openWalletModal(setVisible)}
             >
               <Wallet className="mr-2 h-4 w-4" />
-              Connect Wallet
+              {t("connectWallet")}
             </Button>
           )}
 
@@ -194,22 +203,22 @@ export function Navbar() {
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                  <DropdownMenuLabel>{t("profile")}</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onSelect={() => router.push("/profile")}>
                     <User className="h-4 w-4" />
-                    Profile
+                    {t("profile")}
                   </DropdownMenuItem>
                   <DropdownMenuItem onSelect={() => router.push("/settings")}>
                     <Settings className="h-4 w-4" />
-                    Settings
+                    {t("settings")}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     onSelect={() => void logout().catch(() => undefined)}
                   >
                     <LogOut className="h-4 w-4" />
-                    Logout
+                    {t("signOut")}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -250,7 +259,7 @@ export function Navbar() {
                 onClick={() => openWalletModal(setVisible)}
               >
                 <Wallet className="mr-2 h-4 w-4" />
-                Connect Wallet
+                {t("connectWallet")}
               </Button>
             )}
 
@@ -271,7 +280,7 @@ export function Navbar() {
                 onClick={() => void logout().catch(() => undefined)}
               >
                 <LogOut className="mr-2 h-4 w-4" />
-                Logout ({shortAddress(activeAddress)})
+                {t("signOut")} ({shortAddress(activeAddress)})
               </Button>
             )}
           </div>
@@ -333,7 +342,7 @@ export function Navbar() {
                 onClick={() => setMobileOpen(false)}
               >
                 <link.icon className="h-4 w-4" />
-                {link.label}
+                {t(link.key)}
               </Link>
             ))}
             {showAuthenticatedUI && (
@@ -344,7 +353,7 @@ export function Navbar() {
                   onClick={() => setMobileOpen(false)}
                 >
                   <User className="h-4 w-4" />
-                  Profile
+                  {t("profile")}
                 </Link>
                 <Link
                   href="/settings"
@@ -352,7 +361,7 @@ export function Navbar() {
                   onClick={() => setMobileOpen(false)}
                 >
                   <Settings className="h-4 w-4" />
-                  Settings
+                  {t("settings")}
                 </Link>
               </>
             )}

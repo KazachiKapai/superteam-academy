@@ -1,4 +1,3 @@
-import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { HeroSection } from "@/components/landing/hero-section";
 import { StatsSection } from "@/components/landing/stats-section";
@@ -10,7 +9,6 @@ import { CtaSection } from "@/components/landing/cta-section";
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
       <main>
         <HeroSection />
         <StatsSection />

@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { Navbar } from "@/components/navbar";
 import { roadmaps } from "@/lib/roadmaps";
 import {
   Card,
@@ -12,7 +11,6 @@ import { ArrowRight } from "lucide-react";
 export default function RoadmapsPage() {
   return (
     <div>
-      <Navbar />
       <div className="mx-auto max-w-5xl px-4 py-12 lg:px-6">
         <h1 className="text-3xl font-bold mb-2">Developer Roadmaps</h1>
         <p className="text-muted-foreground mb-10">

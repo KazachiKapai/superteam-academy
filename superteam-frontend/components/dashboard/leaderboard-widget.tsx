@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,11 +18,12 @@ export function LeaderboardWidget({
 }: {
   entries?: LeaderboardWidgetEntry[];
 }) {
+  const t = useTranslations("leaderboard");
   const top = entries.slice(0, 5);
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Leaderboard</CardTitle>
+        <CardTitle>{t("title")}</CardTitle>
         <Link href="/leaderboard">
           <Button variant="ghost" size="sm">
             View All <ArrowRight className="w-4 h-4 ml-2" />
@@ -31,9 +33,7 @@ export function LeaderboardWidget({
       <CardContent>
         <div className="space-y-4">
           {top.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              No leaderboard data yet.
-            </p>
+            <p className="text-sm text-muted-foreground">{t("noEntries")}</p>
           ) : (
             top.map((user) => (
               <div key={user.wallet} className="flex items-center">

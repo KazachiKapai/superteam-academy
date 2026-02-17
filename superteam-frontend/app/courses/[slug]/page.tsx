@@ -1,4 +1,3 @@
-import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { CourseDetail } from "@/components/courses/course-detail";
 import { requireAuthenticatedUser } from "@/lib/server/auth-adapter";
@@ -32,7 +31,6 @@ export default async function CourseDetailPage({
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
       <main>
         <CourseDetail
           course={snapshot.course}

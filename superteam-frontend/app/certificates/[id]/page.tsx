@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { Navbar } from "@/components/navbar";
 import {
   CertificatePage,
   CertificateNotFound,
@@ -45,7 +44,6 @@ export default async function Page({ params }: Props) {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
       <main>
         {cert ? (
           <CertificatePage certificate={cert as CertificateViewData} />

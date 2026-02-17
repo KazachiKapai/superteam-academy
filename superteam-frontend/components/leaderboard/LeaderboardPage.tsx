@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -28,6 +29,7 @@ export default function LeaderboardPage({
   entries: LeaderboardEntry[];
   me: LeaderboardEntry | null;
 }) {
+  const t = useTranslations("leaderboard");
   const myWallet = me?.wallet ?? null;
   const meInList = myWallet
     ? entries.some((e) => e.wallet === myWallet)
@@ -36,10 +38,8 @@ export default function LeaderboardPage({
   return (
     <div className="container mx-auto py-8 text-white">
       <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold">Leaderboard</h1>
-        <p className="text-muted-foreground mt-2 text-sm">
-          Top developers by XP (on-chain)
-        </p>
+        <h1 className="text-3xl font-bold">{t("title")}</h1>
+        <p className="text-muted-foreground mt-2 text-sm">{t("subtitle")}</p>
       </div>
 
       <Card className="bg-transparent">
@@ -47,11 +47,11 @@ export default function LeaderboardPage({
           <Table>
             <TableHeader>
               <TableRow className="border-b-gray-800">
-                <TableHead className="text-white">Rank</TableHead>
-                <TableHead className="text-white">Wallet</TableHead>
-                <TableHead className="text-white">XP</TableHead>
-                <TableHead className="text-white">Level</TableHead>
-                <TableHead className="text-white">Streak</TableHead>
+                <TableHead className="text-white">{t("rank")}</TableHead>
+                <TableHead className="text-white">{t("name")}</TableHead>
+                <TableHead className="text-white">{t("xp")}</TableHead>
+                <TableHead className="text-white">{t("levelLabel")}</TableHead>
+                <TableHead className="text-white">{t("streak")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -66,36 +66,29 @@ export default function LeaderboardPage({
                 >
                   <TableCell className="font-bold">#{entry.rank}</TableCell>
                   <TableCell>
-                    {entry.wallet === myWallet ? (
-                      <Link
-                        href="/profile"
-                        className="flex items-center gap-4 hover:underline"
-                      >
-                        <Avatar className="w-10 h-10">
-                          <AvatarFallback>
-                            {entry.wallet.slice(0, 2).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="font-bold">
-                            {entry.wallet.slice(0, 4)}...
-                            {entry.wallet.slice(-4)}
-                          </p>
-                          <p className="text-sm text-muted-foreground">You</p>
-                        </div>
-                      </Link>
-                    ) : (
-                      <div className="flex items-center gap-4">
-                        <Avatar className="w-10 h-10">
-                          <AvatarFallback>
-                            {entry.wallet.slice(0, 2).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
+                    <Link
+                      href={
+                        entry.wallet === myWallet
+                          ? "/profile"
+                          : `/profile/${entry.wallet}`
+                      }
+                      className="flex items-center gap-4 hover:underline"
+                    >
+                      <Avatar className="w-10 h-10">
+                        <AvatarFallback>
+                          {entry.wallet.slice(0, 2).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
                         <p className="font-bold">
-                          {entry.wallet.slice(0, 4)}...{entry.wallet.slice(-4)}
+                          {entry.wallet.slice(0, 4)}...
+                          {entry.wallet.slice(-4)}
                         </p>
+                        {entry.wallet === myWallet && (
+                          <p className="text-sm text-muted-foreground">You</p>
+                        )}
                       </div>
-                    )}
+                    </Link>
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
@@ -164,7 +157,7 @@ export default function LeaderboardPage({
       </Card>
       {entries.length === 0 && (
         <p className="text-center text-muted-foreground py-8">
-          No leaderboard data yet.
+          {t("noEntries")}
         </p>
       )}
     </div>

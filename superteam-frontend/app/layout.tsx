@@ -4,6 +4,7 @@ import { getLocale, getMessages } from "next-intl/server";
 import "./globals.css";
 import { AppProviders } from "@/components/providers/app-providers";
 import { IntlProvider } from "@/components/providers/intl-provider";
+import { Navbar } from "@/components/navbar";
 import { Toaster } from "@/components/ui/sonner";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
@@ -45,6 +46,7 @@ export default async function RootLayout({
           messages={messages as Record<string, unknown>}
         >
           <AppProviders>
+            <Navbar />
             {children}
             <Toaster position="bottom-right" />
           </AppProviders>

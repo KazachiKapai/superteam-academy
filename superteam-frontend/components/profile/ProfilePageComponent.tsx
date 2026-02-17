@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
+import { useRouter } from "next/navigation";
+import { useMemo, useCallback } from "react";
+import { toast } from "sonner";
 import {
   Award,
   CheckCircle2,
@@ -167,31 +169,40 @@ function shortAddress(mint: string): string {
 }
 
 export default function ProfilePageComponent({
-  username: usernameParam,
   identity,
   activityDays = [],
   allCourses = [],
+  isOwnProfile = true,
 }: {
-  username?: string;
   identity?: IdentitySnapshot;
   activityDays?: Array<{ date: string; intensity: number; count?: number }>;
   allCourses?: Course[];
+  isOwnProfile?: boolean;
 }) {
+  const router = useRouter();
   const user = useMemo(
     () => buildProfileUser(identity, allCourses),
     [identity, allCourses],
   );
-  if (usernameParam != null && user && user.username !== usernameParam) {
-    return (
-      <div className="mx-auto max-w-4xl px-4 py-10 lg:px-6">
-        <Card>
-          <CardContent className="py-10 text-center text-muted-foreground">
-            User not found.
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+
+  const handleShare = useCallback(() => {
+    const walletAddress = identity?.profile?.walletAddress;
+    const shareUrl = walletAddress
+      ? `${window.location.origin}/profile/${walletAddress}`
+      : window.location.href;
+    if (navigator.share) {
+      navigator
+        .share({ title: "Superteam Academy Profile", url: shareUrl })
+        .catch(() => {});
+    } else {
+      navigator.clipboard
+        .writeText(shareUrl)
+        .then(() => {
+          toast.success("Profile link copied to clipboard");
+        })
+        .catch(() => {});
+    }
+  }, [identity?.profile?.walletAddress]);
 
   if (!user) {
     return (
@@ -296,12 +307,18 @@ export default function ProfilePageComponent({
               <Button
                 variant="outline"
                 className="border-border text-foreground"
+                onClick={handleShare}
               >
                 Share Profile
               </Button>
-              <Button className="bg-primary text-primary-foreground hover:bg-primary/90">
-                Edit Profile
-              </Button>
+              {isOwnProfile && (
+                <Button
+                  className="bg-primary text-primary-foreground hover:bg-primary/90"
+                  onClick={() => router.push("/settings")}
+                >
+                  Edit Profile
+                </Button>
+              )}
             </div>
           </div>
 

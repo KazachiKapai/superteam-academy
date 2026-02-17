@@ -1,7 +1,9 @@
 import ProfilePageComponent from "@/components/profile/ProfilePageComponent";
-import { Navbar } from "@/components/navbar";
 import { requireAuthenticatedUser } from "@/lib/server/auth-adapter";
-import { getIdentitySnapshotForUser } from "@/lib/server/solana-identity-adapter";
+import {
+  getIdentitySnapshotForUser,
+  getIdentitySnapshotForWallet,
+} from "@/lib/server/solana-identity-adapter";
 import { getActivityDays } from "@/lib/server/activity-store";
 import { getAllCourseProgressSnapshots } from "@/lib/server/academy-progress-adapter";
 
@@ -11,27 +13,36 @@ export default async function Page({
   params: Promise<{ username: string }>;
 }) {
   const { username } = await params;
-  const user = await requireAuthenticatedUser();
+  const currentUser = await requireAuthenticatedUser();
+
+  // Determine which wallet to show: if the param looks like a Solana address
+  // (32+ chars base58) and isn't the current user, show that wallet's profile.
+  const isCurrentUser =
+    username === currentUser.walletAddress ||
+    username === currentUser.username ||
+    username === `user_${currentUser.walletAddress.slice(0, 6).toLowerCase()}`;
+
+  const targetWallet = isCurrentUser ? currentUser.walletAddress : username;
+
   let snapshot, activityDays, courseSnapshots;
   try {
     [snapshot, activityDays, courseSnapshots] = await Promise.all([
-      getIdentitySnapshotForUser(user),
-      getActivityDays(user.walletAddress, 365),
-      getAllCourseProgressSnapshots(user.walletAddress),
+      isCurrentUser
+        ? getIdentitySnapshotForUser(currentUser)
+        : getIdentitySnapshotForWallet(targetWallet),
+      getActivityDays(targetWallet, 365),
+      getAllCourseProgressSnapshots(targetWallet),
     ]);
   } catch (error: any) {
-    // Network error - use fallbacks
     if (
       error?.message?.includes("fetch failed") ||
       error?.message?.includes("Network error") ||
       error?.message?.includes("ECONNREFUSED")
     ) {
-      console.warn(
-        "Network error loading profile data, using fallbacks:",
-        error.message,
-      );
-      snapshot = await getIdentitySnapshotForUser(user).catch(() => null);
-      activityDays = await getActivityDays(user.walletAddress, 365);
+      snapshot = isCurrentUser
+        ? await getIdentitySnapshotForUser(currentUser).catch(() => null)
+        : await getIdentitySnapshotForWallet(targetWallet).catch(() => null);
+      activityDays = await getActivityDays(targetWallet, 365);
       courseSnapshots = [];
     } else {
       throw error;
@@ -40,14 +51,11 @@ export default async function Page({
   const allCourses = courseSnapshots.map((s) => s.course);
 
   return (
-    <div>
-      <Navbar />
-      <ProfilePageComponent
-        username={username}
-        identity={snapshot}
-        activityDays={activityDays}
-        allCourses={allCourses}
-      />
-    </div>
+    <ProfilePageComponent
+      identity={snapshot}
+      activityDays={activityDays}
+      allCourses={allCourses}
+      isOwnProfile={isCurrentUser}
+    />
   );
 }

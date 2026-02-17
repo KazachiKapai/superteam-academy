@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { Navbar } from "@/components/navbar";
 import { getRoadmap, roadmaps } from "@/lib/roadmaps";
 import { RoadmapViewer } from "@/components/roadmap/roadmap-viewer";
 import { ArrowLeft } from "lucide-react";
@@ -20,7 +19,6 @@ export default async function RoadmapPage({
 
   return (
     <div className="flex flex-col h-screen">
-      <Navbar />
       <div className="border-b border-border bg-background px-4 py-3 lg:px-6">
         <Link
           href="/roadmaps"
