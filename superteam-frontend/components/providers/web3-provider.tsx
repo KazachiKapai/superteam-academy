@@ -9,7 +9,6 @@ import { WalletModalProvider } from "@solana/wallet-adapter-react-ui";
 import {
   PhantomWalletAdapter,
   SolflareWalletAdapter,
-  UnsafeBurnerWalletAdapter,
 } from "@solana/wallet-adapter-wallets";
 import "@solana/wallet-adapter-react-ui/styles.css";
 import { ACADEMY_RPC_URL } from "@/lib/generated/academy-program";
@@ -23,7 +22,6 @@ export function Web3Provider({ children }: Web3ProviderProps) {
     () => [
       new PhantomWalletAdapter(),
       new SolflareWalletAdapter(),
-      new UnsafeBurnerWalletAdapter(),
     ],
     [],
   );
