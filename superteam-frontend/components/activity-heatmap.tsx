@@ -135,36 +135,39 @@ export function ActivityHeatmap({
       </div>
 
       {/* Heatmap grid */}
-      <div className="overflow-x-auto">
-        <div className="min-w-[660px]">
-          <div className="flex gap-[3px]">
-            {heatmap.weeks.map((week) => (
-              <div
-                key={week[0].toISOString()}
-                className="grid grid-rows-7 gap-[3px]"
-              >
-                {week.map((date) => {
-                  const dateKey = toDateKey(date);
-                  const intensity = heatmap.intensityByDate.get(dateKey) ?? 0;
-                  const count = heatmap.countByDate.get(dateKey) ?? 0;
-                  return (
-                    <div
-                      key={dateKey}
-                      className={`h-[11px] w-[11px] rounded-[2px] ${intensityClass(intensity)}`}
-                      title={`${dateKey}: ${
-                        count > 0
-                          ? `${count} ${count === 1 ? "activity" : "activities"}`
-                          : "No activity"
-                      }`}
-                    />
-                  );
-                })}
-              </div>
-            ))}
+      <div>
+        <div>
+          <div
+            className="grid grid-flow-col gap-[3px]"
+            style={{ gridTemplateRows: "repeat(7, 1fr)" }}
+          >
+            {heatmap.weeks.flatMap((week) =>
+              week.map((date) => {
+                const dateKey = toDateKey(date);
+                const intensity = heatmap.intensityByDate.get(dateKey) ?? 0;
+                const count = heatmap.countByDate.get(dateKey) ?? 0;
+                return (
+                  <div
+                    key={dateKey}
+                    className={`aspect-square w-full rounded-[2px] ${intensityClass(intensity)}`}
+                    title={`${dateKey}: ${
+                      count > 0
+                        ? `${count} ${count === 1 ? "activity" : "activities"}`
+                        : "No activity"
+                    }`}
+                  />
+                );
+              }),
+            )}
           </div>
 
           {/* Month labels at bottom */}
-          <div className="flex gap-[3px] mt-1.5">
+          <div
+            className="grid grid-flow-col mt-1.5 gap-[3px]"
+            style={{
+              gridTemplateColumns: `repeat(${heatmap.weeks.length}, 1fr)`,
+            }}
+          >
             {heatmap.weeks.map((week, weekIndex) => {
               const showLabel =
                 weekIndex === 0 ||
@@ -174,7 +177,7 @@ export function ActivityHeatmap({
               return (
                 <div
                   key={week[0].toISOString()}
-                  className="w-[11px] text-[10px] text-muted-foreground leading-none"
+                  className="text-[10px] text-muted-foreground leading-none truncate"
                 >
                   {showLabel
                     ? week[0].toLocaleString("en-US", { month: "short" })
