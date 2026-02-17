@@ -1,6 +1,7 @@
 import "server-only";
 
 import { getAllLearnerProfilesOnChain } from "@/lib/server/academy-chain-read";
+import { getCurrentStreak } from "@/lib/server/activity-store";
 
 export type LeaderboardEntry = {
   wallet: string;
@@ -24,13 +25,17 @@ export async function getCachedLeaderboard(): Promise<LeaderboardEntry[]> {
     if (profiles.length === 0 && cached) {
       return cached.entries;
     }
+    // Compute real streaks from activity data (transaction signatures)
+    const streaks = await Promise.all(
+      profiles.map((p) => getCurrentStreak(p.authority).catch(() => 0)),
+    );
     const entries: LeaderboardEntry[] = profiles
-      .map((p) => ({
+      .map((p, i) => ({
         wallet: p.authority,
         authority: p.authority,
         xp: p.xpTotal,
         level: p.level,
-        streak: p.streakCurrent,
+        streak: Math.max(p.streakCurrent, streaks[i]),
         rank: 0,
       }))
       .sort((a, b) => b.xp - a.xp);
