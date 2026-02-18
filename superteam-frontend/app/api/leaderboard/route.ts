@@ -26,9 +26,12 @@ export async function GET(request: Request) {
     const me = entries.find((e) => e.wallet === user.walletAddress);
     myXp = me?.xp ?? null;
   }
-  return NextResponse.json({
-    entries: top,
-    myRank,
-    myXp,
-  });
+  return NextResponse.json(
+    { entries: top, myRank, myXp },
+    {
+      headers: {
+        "Cache-Control": "private, max-age=30, stale-while-revalidate=60",
+      },
+    },
+  );
 }

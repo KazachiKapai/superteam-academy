@@ -70,10 +70,17 @@ export async function GET(req: NextRequest) {
     }),
   );
 
-  return NextResponse.json({
-    courses: cards,
-    total: allCourses.length,
-    offset,
-    hasMore: offset + limit < allCourses.length,
-  });
+  return NextResponse.json(
+    {
+      courses: cards,
+      total: allCourses.length,
+      offset,
+      hasMore: offset + limit < allCourses.length,
+    },
+    {
+      headers: {
+        "Cache-Control": "private, max-age=10, stale-while-revalidate=30",
+      },
+    },
+  );
 }

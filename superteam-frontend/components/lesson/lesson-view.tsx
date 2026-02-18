@@ -43,6 +43,24 @@ const lessonIcons = {
   challenge: Code2,
 };
 
+type XpBreakdown = {
+  lesson: number;
+  courseCompletion: number;
+  streakBonus: number;
+  firstOfDayBonus: number;
+  total: number;
+};
+
+function buildXpToastText(xp?: XpBreakdown): string {
+  if (!xp) return "Lesson completed!";
+  const parts: string[] = [`+${xp.lesson} XP`];
+  if (xp.courseCompletion > 0)
+    parts.push(`+${xp.courseCompletion} course bonus`);
+  if (xp.firstOfDayBonus > 0) parts.push(`+${xp.firstOfDayBonus} daily first`);
+  if (xp.streakBonus > 0) parts.push(`+${xp.streakBonus} streak`);
+  return `Lesson completed! ${parts.join(", ")} (${xp.total} total)`;
+}
+
 interface LessonViewProps {
   course: Course;
   lesson: Lesson;
@@ -70,14 +88,16 @@ export function LessonView({
   const allLessons = course.modules.flatMap((m) => m.lessons);
   const baseCompleted = allLessons.filter((l) => l.completed).length;
   const isChallenge = lesson.type === "challenge";
-  const xpAmount = isChallenge ? 120 : 50;
 
   const completeToastId = "complete-toast";
   const {
     state: lessonCompleted,
     mutate: markComplete,
     isPending: isCompleting,
-  } = useOptimisticMutation<boolean, { completeTxSignature?: string }>({
+  } = useOptimisticMutation<
+    boolean,
+    { completeTxSignature?: string; xp?: XpBreakdown }
+  >({
     initialState: lesson.completed,
     onMutate: () => true,
     mutationFn: async () => {
@@ -89,7 +109,11 @@ export function LessonView({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ slug: course.slug, lessonId: lesson.id }),
+        body: JSON.stringify({
+          slug: course.slug,
+          lessonId: lesson.id,
+          lessonType: lesson.type,
+        }),
       });
       if (response.status === 401) {
         setNeedsSignIn(true);
@@ -99,23 +123,35 @@ export function LessonView({
         error?: string;
         completeTxSignature?: string;
         finalizeTxSignature?: string | null;
+        xp?: {
+          lesson: number;
+          courseCompletion: number;
+          streakBonus: number;
+          firstOfDayBonus: number;
+          total: number;
+        };
       } | null;
       if (!response.ok) {
         throw new Error(
           payload?.error ?? "Failed to complete lesson on-chain.",
         );
       }
-      return { completeTxSignature: payload?.completeTxSignature };
+      return {
+        completeTxSignature: payload?.completeTxSignature,
+        xp: payload?.xp,
+      };
     },
     onSuccess: (result) => {
       const nextPath = nextLesson
         ? `/courses/${course.slug}/lessons/${nextLesson.id}`
         : `/courses/${course.slug}`;
       const nextLabel = nextLesson ? "Next Lesson" : "Back to Course";
+      const xp = result.xp;
+      const xpText = buildXpToastText(xp);
 
       if (result.completeTxSignature) {
         const explorerUrl = `https://explorer.solana.com/tx/${result.completeTxSignature}${ACADEMY_CLUSTER === "devnet" ? "?cluster=devnet" : ""}`;
-        toast.success(`Lesson completed! +${xpAmount} XP`, {
+        toast.success(xpText, {
           id: completeToastId,
           action: {
             label: "View on Explorer",
@@ -123,7 +159,7 @@ export function LessonView({
           },
         });
       } else {
-        toast.success(`Lesson completed! +${xpAmount} XP`, {
+        toast.success(xpText, {
           id: completeToastId,
           action: { label: nextLabel, onClick: () => router.push(nextPath) },
         });
@@ -516,7 +552,7 @@ function LessonContent({
         <span className="ml-auto flex items-center gap-1 text-xs">
           <Zap className="h-3 w-3 text-primary" />
           <span className="text-primary font-medium">
-            {lesson.type === "challenge" ? "120" : "50"} XP
+            {lesson.type === "challenge" ? "25–100" : "10–50"} XP
           </span>
         </span>
       </div>

@@ -555,14 +555,16 @@ export default function ProfilePageComponent({
                         {t("issued")} {credential.date}
                       </p>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="mt-2 h-7 px-2 text-primary"
-                    >
-                      {t("verify")}
-                      <ExternalLink className="ml-1 h-3.5 w-3.5" />
-                    </Button>
+                    <Link href={`/certificates/${credential.id}`}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="mt-2 h-7 px-2 text-primary"
+                      >
+                        {t("verify")}
+                        <ExternalLink className="ml-1 h-3.5 w-3.5" />
+                      </Button>
+                    </Link>
                   </div>
                 ))
               )}

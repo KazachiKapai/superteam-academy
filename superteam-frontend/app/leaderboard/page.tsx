@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import LeaderboardPage from "@/components/leaderboard/LeaderboardPage";
 import { requireAuthenticatedUser } from "@/lib/server/auth-adapter";
 import {
@@ -5,6 +6,12 @@ import {
   getRankForWallet,
 } from "@/lib/server/leaderboard-cache";
 import { getLearnerProfileOnChain } from "@/lib/server/academy-chain-read";
+
+export const metadata: Metadata = {
+  title: "Leaderboard",
+  description:
+    "See the top learners on SuperTeam Academy ranked by XP and streaks.",
+};
 
 export default async function Page() {
   const user = await requireAuthenticatedUser();

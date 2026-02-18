@@ -1,7 +1,25 @@
+import type { Metadata } from "next";
 import { LessonView } from "@/components/lesson/lesson-view";
 import { requireAuthenticatedUser } from "@/lib/server/auth-adapter";
 import { getCourseProgressSnapshot } from "@/lib/server/academy-progress-adapter";
+import { courseService } from "@/lib/cms/course-service";
 import { notFound, redirect } from "next/navigation";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string; id: string }>;
+}): Promise<Metadata> {
+  const { slug, id } = await params;
+  const course = await courseService.getCourseBySlug(slug);
+  if (!course) return {};
+  const lesson = course.modules
+    .flatMap((m) => m.lessons)
+    .find((l) => l.id === id);
+  return {
+    title: lesson ? `${lesson.title} — ${course.title}` : course.title,
+  };
+}
 
 export default async function LessonPage({
   params,

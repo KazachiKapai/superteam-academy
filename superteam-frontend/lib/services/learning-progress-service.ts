@@ -156,7 +156,8 @@ export class OnChainLearningProgressService implements LearningProgressService {
     await completeLessonOnChain(user, courseSlug);
 
     const course = getCourse(courseSlug);
-    recordLessonComplete(userId, course?.title ?? courseSlug);
+    // Default XP for this codepath (service-level call without difficulty context)
+    recordLessonComplete(userId, course?.title ?? courseSlug, 50);
   }
 
   async getXpBalance(userId: string): Promise<number> {

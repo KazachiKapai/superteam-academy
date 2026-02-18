@@ -1,11 +1,41 @@
+import dynamic from "next/dynamic";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getRoadmap, roadmaps } from "@/lib/roadmaps";
-import { RoadmapViewer } from "@/components/roadmap/roadmap-viewer";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
+import type { Metadata } from "next";
+
+const RoadmapViewer = dynamic(
+  () =>
+    import("@/components/roadmap/roadmap-viewer").then(
+      (mod) => mod.RoadmapViewer,
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-full items-center justify-center text-muted-foreground">
+        <Loader2 className="h-6 w-6 animate-spin" />
+      </div>
+    ),
+  },
+);
 
 export function generateStaticParams() {
   return roadmaps.map((r) => ({ slug: r.slug }));
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const roadmap = getRoadmap(slug);
+  if (!roadmap) return {};
+  return {
+    title: `${roadmap.title} Roadmap`,
+    description: roadmap.description,
+  };
 }
 
 export default async function RoadmapPage({

@@ -1,12 +1,9 @@
 "use client";
 
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import Script from "next/script";
 import { gtagScriptUrl, gtagInitScript } from "@/lib/analytics/gtag";
-import { getPostHogClient } from "@/lib/analytics/posthog";
-import { initSentry } from "@/lib/analytics/sentry";
-import { analytics } from "@/lib/analytics";
 
 type AnalyticsProviderProps = {
   children: ReactNode;
@@ -14,15 +11,30 @@ type AnalyticsProviderProps = {
 
 export function AnalyticsProvider({ children }: AnalyticsProviderProps) {
   const pathname = usePathname();
+  const initialized = useRef(false);
 
+  // Defer heavy analytics SDKs until after page is interactive
   useEffect(() => {
-    getPostHogClient();
-    initSentry();
+    if (initialized.current) return;
+    initialized.current = true;
+
+    const init = () => {
+      import("@/lib/analytics/posthog").then((m) => m.getPostHogClient());
+      import("@/lib/analytics/sentry").then((m) => m.initSentry());
+    };
+
+    if (typeof requestIdleCallback === "function") {
+      requestIdleCallback(init, { timeout: 3000 });
+    } else {
+      setTimeout(init, 2000);
+    }
   }, []);
 
   useEffect(() => {
     if (pathname) {
-      analytics.trackPageView(pathname);
+      import("@/lib/analytics").then((m) =>
+        m.analytics.trackPageView(pathname),
+      );
     }
   }, [pathname]);
 
@@ -31,11 +43,11 @@ export function AnalyticsProvider({ children }: AnalyticsProviderProps) {
 
   return (
     <>
-      {scriptUrl && <Script src={scriptUrl} strategy="afterInteractive" />}
+      {scriptUrl && <Script src={scriptUrl} strategy="lazyOnload" />}
       {initScript && (
         <Script
           id="gtag-init"
-          strategy="afterInteractive"
+          strategy="lazyOnload"
           dangerouslySetInnerHTML={{ __html: initScript }}
         />
       )}

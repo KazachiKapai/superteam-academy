@@ -25,6 +25,30 @@ const ENROLLMENT_SEED = "enrollment";
 let cachedConnection: Connection | null = null;
 let cachedBackendKeypair: Keypair | null = null;
 
+// ---------------------------------------------------------------------------
+// TTL cache for RPC results — avoids repeated network calls within a window
+// ---------------------------------------------------------------------------
+type CacheEntry<T> = { value: T; expiresAt: number };
+const rpcCache = new Map<string, CacheEntry<unknown>>();
+const CACHE_TTL_MS = 30_000; // 30 seconds
+
+function cacheGet<T>(key: string): T | undefined {
+  const entry = rpcCache.get(key);
+  if (!entry) return undefined;
+  if (Date.now() > entry.expiresAt) {
+    rpcCache.delete(key);
+    return undefined;
+  }
+  return entry.value as T;
+}
+
+function cacheSet<T>(key: string, value: T, ttl = CACHE_TTL_MS): void {
+  rpcCache.set(key, { value, expiresAt: Date.now() + ttl });
+}
+
+// Set of course IDs we already know exist on-chain (never expires within process)
+const knownCourses = new Set<string>();
+
 function keypair(): string {
   return "[254,140,9,1,99,219,118,106,147,86,25,95,78,31,254,148,163,95,183,208,127,190,220,93,191,49,4,154,248,236,22,50,171,175,142,158,235,36,219,4,123,33,90,21,193,6,145,227,74,158,145,17,180,214,51,12,198,229,67,107,195,236,182,231]";
 }
@@ -138,11 +162,17 @@ export async function ensureCourseOnChain(
   lessonsCount: number,
   trackId: number,
 ) {
+  // Skip RPC entirely if we already know this course exists
+  if (knownCourses.has(courseId)) return deriveCoursePda(courseId);
+
   try {
     const { connection, backend } = getClient();
     const coursePda = deriveCoursePda(courseId);
     const existing = await connection.getAccountInfo(coursePda);
-    if (existing) return coursePda;
+    if (existing) {
+      knownCourses.add(courseId);
+      return coursePda;
+    }
 
     const instruction = new TransactionInstruction({
       programId: new PublicKey(ACADEMY_PROGRAM_ID),
@@ -159,6 +189,7 @@ export async function ensureCourseOnChain(
       commitment: "confirmed",
     });
 
+    knownCourses.add(courseId);
     return coursePda;
   } catch (error: any) {
     // Network errors - return PDA anyway (course may exist, we just can't verify)
@@ -208,11 +239,17 @@ export async function deactivateCourseOnChain(
 export async function fetchLearnerProfile(
   user: PublicKey,
 ): Promise<any | null> {
+  const cacheKey = `learner:${user.toBase58()}`;
+  const cached = cacheGet<any | null>(cacheKey);
+  if (cached !== undefined) return cached;
+
   try {
     const { connection } = getClient();
     const learner = deriveLearnerPda(user);
     const info = await connection.getAccountInfo(learner);
-    return info ? { exists: true } : null;
+    const result = info ? { exists: true } : null;
+    cacheSet(cacheKey, result);
+    return result;
   } catch (error: any) {
     // Network errors - assume no profile (safe fallback)
     if (
@@ -230,15 +267,24 @@ export async function fetchEnrollment(
   user: PublicKey,
   courseId: string,
 ): Promise<any | null> {
+  const cacheKey = `enrollment:${user.toBase58()}:${courseId}`;
+  const cached = cacheGet<any | null>(cacheKey);
+  if (cached !== undefined) return cached;
+
   try {
     const { connection } = getClient();
     const course = deriveCoursePda(courseId);
     const enrollment = deriveEnrollmentPda(course, user);
     const info = await connection.getAccountInfo(enrollment);
-    if (!info) return null;
-    return {
+    if (!info) {
+      cacheSet(cacheKey, null);
+      return null;
+    }
+    const result = {
       lessonsCompleted: decodeEnrollmentLessonsCompleted(info.data),
     };
+    cacheSet(cacheKey, result);
+    return result;
   } catch (error: any) {
     // Network errors - assume not enrolled (safe fallback)
     if (
@@ -250,6 +296,12 @@ export async function fetchEnrollment(
     }
     throw error;
   }
+}
+
+export function invalidateEnrollmentCache(user: PublicKey, courseId: string) {
+  rpcCache.delete(`enrollment:${user.toBase58()}:${courseId}`);
+  rpcCache.delete(`completedCount:${user.toBase58()}`);
+  rpcCache.delete(`activity:${user.toBase58()}:365`);
 }
 
 export async function completeLessonOnChain(
@@ -323,11 +375,15 @@ export async function fetchChainActivity(
   daysBack: number,
   recentLimit = 20,
 ): Promise<ChainActivityData> {
+  const cacheKey = `activity:${user.toBase58()}:${daysBack}`;
+  const cached = cacheGet<ChainActivityData>(cacheKey);
+  if (cached) return cached;
+
   try {
     const { connection } = getClient();
     const learnerPda = deriveLearnerPda(user);
     const signatures = await connection.getSignaturesForAddress(learnerPda, {
-      limit: 1000,
+      limit: 200,
     });
 
     const cutoff = Date.now() / 1000 - daysBack * 86400;
@@ -358,7 +414,9 @@ export async function fetchChainActivity(
       days.push({ date, intensity: countToIntensity(count), count });
     }
 
-    return { days, recent };
+    const result = { days, recent };
+    cacheSet(cacheKey, result, 60_000); // 60s cache for activity
+    return result;
   } catch {
     return { days: [], recent: [] };
   }
@@ -371,6 +429,10 @@ export async function fetchChainActivity(
 export async function countCompletedCoursesOnChain(
   walletAddress: string,
 ): Promise<number> {
+  const cacheKey = `completedCount:${walletAddress}`;
+  const cached = cacheGet<number>(cacheKey);
+  if (cached !== undefined) return cached;
+
   try {
     const { connection } = getClient();
     const { courses } = await import("@/lib/course-catalog");
@@ -396,6 +458,7 @@ export async function countCompletedCoursesOnChain(
       );
       if (lessonsCompleted >= lessonCounts[i]) completed++;
     }
+    cacheSet(cacheKey, completed);
     return completed;
   } catch {
     return 0;

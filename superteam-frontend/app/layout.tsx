@@ -6,7 +6,7 @@ import { AppProviders } from "@/components/providers/app-providers";
 import { IntlProvider } from "@/components/providers/intl-provider";
 import { Navbar } from "@/components/navbar";
 import { Toaster } from "@/components/ui/sonner";
-import { AiAssistant } from "@/components/chat/ai-assistant";
+import { LazyAiAssistant } from "@/components/chat/ai-assistant-lazy";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const jetbrains = JetBrains_Mono({
@@ -16,13 +16,33 @@ const jetbrains = JetBrains_Mono({
 const archivo = Archivo({
   subsets: ["latin"],
   variable: "--font-archivo",
-  weight: ["400", "500", "600", "700", "800", "900"],
+  weight: ["400", "500", "600", "700", "900"],
 });
 
 export const metadata: Metadata = {
-  title: "SuperTeam - Interactive Blockchain Education",
+  title: {
+    default: "SuperTeam Academy - Interactive Blockchain Education",
+    template: "%s | SuperTeam Academy",
+  },
   description:
     "Master Solana, Rust, and Web3 development through interactive coding challenges, gamified learning paths, and on-chain credentials.",
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
+  ),
+  openGraph: {
+    type: "website",
+    siteName: "SuperTeam Academy",
+    title: "SuperTeam Academy - Interactive Blockchain Education",
+    description:
+      "Master Solana, Rust, and Web3 development through interactive coding challenges, gamified learning paths, and on-chain credentials.",
+  },
+  twitter: {
+    card: "summary_large_image",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export const viewport: Viewport = {
@@ -57,7 +77,7 @@ export default async function RootLayout({
           <AppProviders>
             <Navbar />
             {children}
-            <AiAssistant />
+            <LazyAiAssistant />
             <Toaster position="bottom-right" />
           </AppProviders>
         </IntlProvider>

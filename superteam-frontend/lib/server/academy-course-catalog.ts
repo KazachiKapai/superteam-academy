@@ -6,7 +6,24 @@ export type CatalogCourseMeta = {
   slug: string;
   lessonsCount: number;
   trackId: number;
+  difficulty: "Beginner" | "Intermediate" | "Advanced";
 };
+
+// XP rewards per difficulty tier
+const XP_REWARDS = {
+  Beginner: { lesson: 10, challenge: 25, courseComplete: 500 },
+  Intermediate: { lesson: 30, challenge: 60, courseComplete: 1000 },
+  Advanced: { lesson: 50, challenge: 100, courseComplete: 2000 },
+} as const;
+
+export const DAILY_STREAK_BONUS = 10;
+export const FIRST_COMPLETION_OF_DAY_BONUS = 25;
+
+export function getXpRewards(
+  difficulty: "Beginner" | "Intermediate" | "Advanced",
+) {
+  return XP_REWARDS[difficulty];
+}
 
 export function getCatalogCourseMeta(slug: string): CatalogCourseMeta | null {
   const courses = getAllCourses();
@@ -21,5 +38,6 @@ export function getCatalogCourseMeta(slug: string): CatalogCourseMeta | null {
     slug,
     lessonsCount,
     trackId: index + 1,
+    difficulty: course.difficulty,
   };
 }

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import ProfilePageComponent from "@/components/profile/ProfilePageComponent";
 import { requireAuthenticatedUser } from "@/lib/server/auth-adapter";
 import { getIdentitySnapshotForUser } from "@/lib/server/solana-identity-adapter";
@@ -6,6 +7,12 @@ import { getAllCourseProgressSnapshots } from "@/lib/server/academy-progress-ada
 import { courseService } from "@/lib/cms/course-service";
 import type { CourseProgressSnapshot } from "@/lib/server/academy-progress-adapter";
 import type { IdentitySnapshot } from "@/lib/identity/types";
+
+export const metadata: Metadata = {
+  title: "Profile",
+  description:
+    "View your SuperTeam Academy profile, credentials, and learning activity.",
+};
 
 export default async function Page() {
   const user = await requireAuthenticatedUser();

@@ -1,9 +1,24 @@
+import type { Metadata } from "next";
 import { Footer } from "@/components/footer";
 import { CourseDetail } from "@/components/courses/course-detail";
 import { requireAuthenticatedUser } from "@/lib/server/auth-adapter";
 import { getCourseProgressSnapshot } from "@/lib/server/academy-progress-adapter";
 import { courseService } from "@/lib/cms/course-service";
 import { notFound } from "next/navigation";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const course = await courseService.getCourseBySlug(slug);
+  if (!course) return {};
+  return {
+    title: course.title,
+    description: course.description,
+  };
+}
 
 export default async function CourseDetailPage({
   params,

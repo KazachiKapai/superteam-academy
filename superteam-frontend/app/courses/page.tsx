@@ -1,9 +1,16 @@
+import type { Metadata } from "next";
 import { Footer } from "@/components/footer";
 import { CourseCatalog } from "@/components/courses/course-catalog";
 import { requireAuthenticatedUser } from "@/lib/server/auth-adapter";
 import { getAllCourseProgressSnapshots } from "@/lib/server/academy-progress-adapter";
 import { courseService } from "@/lib/cms/course-service";
 import type { CourseCardData } from "@/lib/course-catalog";
+
+export const metadata: Metadata = {
+  title: "Courses",
+  description:
+    "Browse interactive Solana development courses — from fundamentals to advanced DeFi and NFT programming.",
+};
 
 const PAGE_SIZE = 6;
 

@@ -87,29 +87,39 @@ export async function getAllCourseProgressSnapshots(
     ? slugs.map((s) => getCourse(s)).filter(Boolean)
     : getAllCourses();
 
-  const results: CourseProgressSnapshot[] = [];
-  for (const course of courseList) {
-    if (!course) continue;
-    try {
-      const snapshot = await getCourseProgressSnapshot(
-        walletAddress,
-        course.slug,
-      );
-      if (snapshot) results.push(snapshot);
-    } catch {
-      // Skip courses that fail on-chain lookup — still show the rest
-      const fallback = cloneCourse(course.slug);
-      if (fallback) {
-        const coursePda = deriveCoursePda(course.slug);
-        const user = new PublicKey(walletAddress);
-        results.push({
-          course: applyProgress(fallback, 0),
-          enrolledOnChain: false,
-          completedLessons: 0,
-          enrollmentPda: deriveEnrollmentPda(coursePda, user).toBase58(),
-        });
-      }
-    }
-  }
-  return results;
+  const settled = await Promise.allSettled(
+    courseList
+      .filter((c): c is NonNullable<typeof c> => c != null)
+      .map(async (course) => {
+        try {
+          const snapshot = await getCourseProgressSnapshot(
+            walletAddress,
+            course.slug,
+          );
+          return snapshot;
+        } catch {
+          // Fallback: show course without on-chain data
+          const fallback = cloneCourse(course.slug);
+          if (fallback) {
+            const coursePda = deriveCoursePda(course.slug);
+            const user = new PublicKey(walletAddress);
+            return {
+              course: applyProgress(fallback, 0),
+              enrolledOnChain: false,
+              completedLessons: 0,
+              enrollmentPda: deriveEnrollmentPda(coursePda, user).toBase58(),
+            } satisfies CourseProgressSnapshot;
+          }
+          return null;
+        }
+      }),
+  );
+
+  return settled
+    .filter(
+      (r): r is PromiseFulfilledResult<CourseProgressSnapshot | null> =>
+        r.status === "fulfilled",
+    )
+    .map((r) => r.value)
+    .filter((s): s is CourseProgressSnapshot => s != null);
 }

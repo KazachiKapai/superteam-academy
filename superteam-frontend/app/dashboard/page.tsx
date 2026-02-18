@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { Footer } from "@/components/footer";
 import { DashboardContent } from "@/components/dashboard/dashboard-content";
 import { requireAuthenticatedUser } from "@/lib/server/auth-adapter";
@@ -11,6 +12,12 @@ import {
 import { courseService } from "@/lib/cms/course-service";
 import type { CourseProgressSnapshot } from "@/lib/server/academy-progress-adapter";
 import type { IdentitySnapshot } from "@/lib/identity/types";
+
+export const metadata: Metadata = {
+  title: "Dashboard",
+  description:
+    "Track your learning progress, streaks, and XP on SuperTeam Academy.",
+};
 
 export default async function DashboardPage() {
   const user = await requireAuthenticatedUser();

@@ -2,8 +2,10 @@ import "server-only";
 
 import { PublicKey } from "@solana/web3.js";
 import { fetchChainActivity } from "./academy-program";
-
-const XP_PER_LESSON = 50;
+import {
+  DAILY_STREAK_BONUS,
+  FIRST_COMPLETION_OF_DAY_BONUS,
+} from "./academy-course-catalog";
 
 export type RecentActivityItem = {
   type: "lesson" | "course";
@@ -17,6 +19,8 @@ export type RecentActivityItem = {
 const activityCountsByWallet = new Map<string, Map<string, number>>();
 const recentActivityByWallet = new Map<string, RecentActivityItem[]>();
 const totalCompletedByWallet = new Map<string, number>();
+// Tracks whether a wallet has completed anything today (for first-of-day bonus)
+const firstCompletionDateByWallet = new Map<string, string>();
 const MAX_RECENT = 20;
 
 function toDateKey(d: Date): string {
@@ -32,9 +36,43 @@ function formatTimeAgo(ts: number): string {
   return `${Math.floor(sec / 604800)}w ago`;
 }
 
+/**
+ * Check if this is the first completion of the day for a wallet.
+ * Returns true only the first time per UTC day.
+ */
+function checkFirstCompletionOfDay(wallet: string): boolean {
+  const today = toDateKey(new Date());
+  const lastDate = firstCompletionDateByWallet.get(wallet);
+  if (lastDate === today) return false;
+  firstCompletionDateByWallet.set(wallet, today);
+  return true;
+}
+
+/**
+ * Compute bonus XP for a completion event.
+ * Returns { streakBonus, firstOfDayBonus, totalBonus }.
+ */
+export function computeBonusXp(
+  wallet: string,
+  currentStreak: number,
+): { streakBonus: number; firstOfDayBonus: number; totalBonus: number } {
+  const isFirstOfDay = checkFirstCompletionOfDay(wallet);
+  const firstOfDayBonus = isFirstOfDay ? FIRST_COMPLETION_OF_DAY_BONUS : 0;
+  // Streak bonus applies if user has an active streak of 2+ days
+  const streakBonus = currentStreak >= 2 ? DAILY_STREAK_BONUS : 0;
+  // Streak bonus only applies once per day (same as first-of-day tracking)
+  const effectiveStreakBonus = isFirstOfDay ? streakBonus : 0;
+  return {
+    streakBonus: effectiveStreakBonus,
+    firstOfDayBonus,
+    totalBonus: effectiveStreakBonus + firstOfDayBonus,
+  };
+}
+
 export function recordLessonComplete(
   wallet: string,
   courseTitle: string,
+  xpAmount: number,
   lessonTitle?: string,
 ): void {
   const today = toDateKey(new Date());
@@ -51,7 +89,7 @@ export function recordLessonComplete(
     text: lessonTitle ? `Completed '${lessonTitle}'` : "Completed a lesson",
     course: courseTitle,
     time: formatTimeAgo(Date.now()),
-    xp: XP_PER_LESSON,
+    xp: xpAmount,
     ts: Date.now(),
   });
   recentActivityByWallet.set(wallet, items.slice(0, MAX_RECENT));
@@ -60,6 +98,7 @@ export function recordLessonComplete(
 export function recordCourseFinalized(
   wallet: string,
   courseTitle: string,
+  xpAmount: number,
 ): void {
   const prev = totalCompletedByWallet.get(wallet) ?? 0;
   totalCompletedByWallet.set(wallet, prev + 1);
@@ -70,7 +109,7 @@ export function recordCourseFinalized(
     text: `Completed course: ${courseTitle}`,
     course: courseTitle,
     time: formatTimeAgo(Date.now()),
-    xp: 0,
+    xp: xpAmount,
     ts: Date.now(),
   });
   recentActivityByWallet.set(wallet, items.slice(0, MAX_RECENT));

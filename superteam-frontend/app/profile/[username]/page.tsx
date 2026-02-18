@@ -1,5 +1,17 @@
+import type { Metadata } from "next";
 import ProfilePageComponent from "@/components/profile/ProfilePageComponent";
 import { requireAuthenticatedUser } from "@/lib/server/auth-adapter";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ username: string }>;
+}): Promise<Metadata> {
+  const { username } = await params;
+  return {
+    title: `${username}'s Profile`,
+  };
+}
 import {
   getIdentitySnapshotForUser,
   getIdentitySnapshotForWallet,

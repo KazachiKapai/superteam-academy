@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { roadmaps } from "@/lib/roadmaps";
 import {
@@ -7,6 +8,12 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { ArrowRight } from "lucide-react";
+
+export const metadata: Metadata = {
+  title: "Roadmaps",
+  description:
+    "Interactive Solana developer roadmaps — explore learning paths from beginner to advanced.",
+};
 
 export default function RoadmapsPage() {
   return (

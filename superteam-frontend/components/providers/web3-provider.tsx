@@ -10,9 +10,6 @@ import {
   PhantomWalletAdapter,
   SolflareWalletAdapter,
   CoinbaseWalletAdapter,
-  LedgerWalletAdapter,
-  TorusWalletAdapter,
-  TrustWalletAdapter,
 } from "@solana/wallet-adapter-wallets";
 import "@solana/wallet-adapter-react-ui/styles.css";
 import { ACADEMY_RPC_URL } from "@/lib/generated/academy-program";
@@ -27,9 +24,6 @@ export function Web3Provider({ children }: Web3ProviderProps) {
       new PhantomWalletAdapter(),
       new SolflareWalletAdapter(),
       new CoinbaseWalletAdapter(),
-      new LedgerWalletAdapter(),
-      new TorusWalletAdapter(),
-      new TrustWalletAdapter(),
     ],
     [],
   );
