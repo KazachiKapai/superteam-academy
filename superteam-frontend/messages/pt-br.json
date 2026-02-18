@@ -399,5 +399,13 @@
     "avgStreak": "Sequencia Media",
     "adminPanel": "Painel Admin",
     "management": "Gerenciamento"
+  },
+  "chat": {
+    "title": "Assistente da Academia",
+    "subtitle": "Desenvolvido por IA",
+    "welcomeTitle": "Como posso ajudar?",
+    "welcomeSubtitle": "Pergunte sobre cursos, desafios ou como navegar na plataforma.",
+    "placeholder": "Pergunte qualquer coisa...",
+    "disclaimer": "Respostas de IA podem nem sempre ser precisas. Verifique informacoes importantes."
   }
 }

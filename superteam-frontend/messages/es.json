@@ -399,5 +399,13 @@
     "avgStreak": "Racha Promedio",
     "adminPanel": "Panel de Admin",
     "management": "Gestion"
+  },
+  "chat": {
+    "title": "Asistente de la Academia",
+    "subtitle": "Impulsado por IA",
+    "welcomeTitle": "¿Como puedo ayudarte?",
+    "welcomeSubtitle": "Preguntame sobre cursos, desafios o como navegar la plataforma.",
+    "placeholder": "Pregunta lo que quieras...",
+    "disclaimer": "Las respuestas de IA pueden no ser siempre precisas. Verifica la informacion importante."
   }
 }

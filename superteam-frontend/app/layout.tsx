@@ -6,6 +6,7 @@ import { AppProviders } from "@/components/providers/app-providers";
 import { IntlProvider } from "@/components/providers/intl-provider";
 import { Navbar } from "@/components/navbar";
 import { Toaster } from "@/components/ui/sonner";
+import { AiAssistant } from "@/components/chat/ai-assistant";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const jetbrains = JetBrains_Mono({
@@ -56,6 +57,7 @@ export default async function RootLayout({
           <AppProviders>
             <Navbar />
             {children}
+            <AiAssistant />
             <Toaster position="bottom-right" />
           </AppProviders>
         </IntlProvider>

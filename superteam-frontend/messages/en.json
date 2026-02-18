@@ -399,5 +399,13 @@
     "avgStreak": "Avg Streak",
     "adminPanel": "Admin Panel",
     "management": "Management"
+  },
+  "chat": {
+    "title": "Academy Assistant",
+    "subtitle": "Powered by AI",
+    "welcomeTitle": "How can I help?",
+    "welcomeSubtitle": "Ask me about courses, challenges, or navigating the platform.",
+    "placeholder": "Ask anything...",
+    "disclaimer": "AI responses may not always be accurate. Verify important information."
   }
 }
