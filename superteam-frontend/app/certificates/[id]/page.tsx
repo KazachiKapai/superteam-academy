@@ -4,7 +4,7 @@ import {
   CertificateNotFound,
   type CertificateViewData,
 } from "@/components/certificates/CertificatePage";
-import { getCertificateById } from "@/lib/server/certificate-service";
+import { getCachedCertificate } from "@/lib/server/certificate-data";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -12,7 +12,7 @@ type Props = {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
-  const cert = await getCertificateById(id);
+  const cert = await getCachedCertificate(id);
 
   if (!cert) {
     return {
@@ -40,7 +40,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function Page({ params }: Props) {
   const { id } = await params;
-  const cert = await getCertificateById(id);
+  const cert = await getCachedCertificate(id);
 
   return (
     <div className="min-h-screen bg-background">

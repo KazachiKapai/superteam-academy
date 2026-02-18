@@ -1,6 +1,27 @@
 import type { Metadata } from "next";
-import ProfilePageComponent from "@/components/profile/ProfilePageComponent";
+import { Suspense } from "react";
+import {
+  HeaderSkeleton,
+  ActivitySkeleton,
+  CoursesSkeleton,
+  SkillsSkeleton,
+  BadgesSkeleton,
+  CredentialsSkeleton,
+} from "@/components/profile/profile-skeletons";
+import {
+  ProfileHeaderSection,
+  ActivitySection,
+  CompletedCoursesSection,
+  SkillsSection,
+  AchievementsSection,
+  CredentialsSection,
+  VisibilitySection,
+} from "@/components/profile/profile-server-sections";
 import { requireAuthenticatedUser } from "@/lib/server/auth-adapter";
+import {
+  preloadProfileData,
+  preloadPublicProfileData,
+} from "@/lib/server/profile-data";
 
 export async function generateMetadata({
   params,
@@ -12,15 +33,6 @@ export async function generateMetadata({
     title: `${username}'s Profile`,
   };
 }
-import {
-  getIdentitySnapshotForUser,
-  getIdentitySnapshotForWallet,
-} from "@/lib/server/solana-identity-adapter";
-import { getActivityDays } from "@/lib/server/activity-store";
-import { getAllCourseProgressSnapshots } from "@/lib/server/academy-progress-adapter";
-import { courseService } from "@/lib/cms/course-service";
-import type { CourseProgressSnapshot } from "@/lib/server/academy-progress-adapter";
-import type { IdentitySnapshot } from "@/lib/identity/types";
 
 export default async function Page({
   params,
@@ -30,47 +42,53 @@ export default async function Page({
   const { username } = await params;
   const currentUser = await requireAuthenticatedUser();
 
-  const isCurrentUser =
+  const isOwnProfile =
     username === currentUser.walletAddress ||
     username === currentUser.username ||
     username === `user_${currentUser.walletAddress.slice(0, 6).toLowerCase()}`;
 
-  const targetWallet = isCurrentUser ? currentUser.walletAddress : username;
+  const targetWallet = isOwnProfile ? currentUser.walletAddress : username;
 
-  let snapshot: IdentitySnapshot | undefined;
-  let activityDays: Awaited<ReturnType<typeof getActivityDays>>;
-  let courseSnapshots: CourseProgressSnapshot[] = [];
-  try {
-    [snapshot, activityDays, courseSnapshots] = await Promise.all([
-      isCurrentUser
-        ? getIdentitySnapshotForUser(currentUser)
-        : getIdentitySnapshotForWallet(targetWallet),
-      getActivityDays(targetWallet, 365),
-      getAllCourseProgressSnapshots(targetWallet),
-    ]);
-  } catch {
-    snapshot =
-      (isCurrentUser
-        ? await getIdentitySnapshotForUser(currentUser).catch(() => null)
-        : await getIdentitySnapshotForWallet(targetWallet).catch(() => null)) ??
-      undefined;
-    activityDays = await getActivityDays(targetWallet, 365);
-    courseSnapshots = [];
+  // Fire all RPCs immediately — Suspense children pick up in-flight promises
+  if (isOwnProfile) {
+    preloadProfileData(currentUser);
+  } else {
+    preloadPublicProfileData(targetWallet);
   }
-  const allCourses =
-    courseSnapshots.length > 0
-      ? courseSnapshots.map((s) => s.course)
-      : (await courseService.getAllCourses()).map((c) => ({
-          ...c,
-          progress: 0,
-        }));
+
+  // For own profile, pass user (uses getProfileIdentity); for others, pass wallet
+  const identityProps = isOwnProfile
+    ? { user: currentUser }
+    : { wallet: targetWallet };
 
   return (
-    <ProfilePageComponent
-      identity={snapshot}
-      activityDays={activityDays}
-      allCourses={allCourses}
-      isOwnProfile={isCurrentUser}
-    />
+    <div className="mx-auto max-w-7xl px-4 py-8 lg:px-6 lg:py-10">
+      <Suspense fallback={<HeaderSkeleton />}>
+        <ProfileHeaderSection {...identityProps} isOwnProfile={isOwnProfile} />
+      </Suspense>
+
+      <div className="mt-6 grid gap-6 xl:grid-cols-3">
+        <div className="space-y-6 xl:col-span-2">
+          <Suspense fallback={<ActivitySkeleton />}>
+            <ActivitySection wallet={targetWallet} />
+          </Suspense>
+          <Suspense fallback={<CoursesSkeleton />}>
+            <CompletedCoursesSection wallet={targetWallet} />
+          </Suspense>
+        </div>
+        <div className="space-y-6">
+          <Suspense fallback={<SkillsSkeleton />}>
+            <SkillsSection wallet={targetWallet} />
+          </Suspense>
+          <Suspense fallback={<BadgesSkeleton />}>
+            <AchievementsSection {...identityProps} />
+          </Suspense>
+          <Suspense fallback={<CredentialsSkeleton />}>
+            <CredentialsSection {...identityProps} />
+          </Suspense>
+          {isOwnProfile && <VisibilitySection />}
+        </div>
+      </div>
+    </div>
   );
 }

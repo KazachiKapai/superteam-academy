@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Footer } from "@/components/footer";
 import { CourseCatalog } from "@/components/courses/course-catalog";
 import { requireAuthenticatedUser } from "@/lib/server/auth-adapter";
@@ -53,17 +54,7 @@ export default async function CoursesPage() {
 
   const allCourses = await courseService.getAllCourses();
   const firstPage = allCourses.slice(0, PAGE_SIZE);
-
-  let initialCards: CourseCardData[];
-  try {
-    const snapshots = await getAllCourseProgressSnapshots(
-      user.walletAddress,
-      firstPage.map((c) => c.slug),
-    );
-    initialCards = snapshots.map((s) => toCard(s.course));
-  } catch {
-    initialCards = firstPage.map((c) => toCard({ ...c, progress: 0 }));
-  }
+  const zeroProgressCards = firstPage.map((c) => toCard({ ...c, progress: 0 }));
 
   return (
     <div className="min-h-screen bg-background">
@@ -76,12 +67,63 @@ export default async function CoursesPage() {
             Master blockchain development with hands-on interactive courses.
           </p>
         </div>
-        <CourseCatalog
-          initialCourses={initialCards}
-          totalCourses={allCourses.length}
-        />
+        <Suspense
+          fallback={
+            <CourseCatalog
+              initialCourses={zeroProgressCards}
+              totalCourses={allCourses.length}
+            />
+          }
+        >
+          <CoursesWithProgress
+            wallet={user.walletAddress}
+            allCourses={allCourses}
+            totalCourses={allCourses.length}
+          />
+        </Suspense>
       </main>
       <Footer />
     </div>
+  );
+}
+
+async function CoursesWithProgress({
+  wallet,
+  allCourses,
+  totalCourses,
+}: {
+  wallet: string;
+  allCourses: Array<{
+    slug: string;
+    title: string;
+    description: string;
+    instructor: string;
+    instructorAvatar: string;
+    difficulty: string;
+    duration: string;
+    lessons: number;
+    rating: number;
+    enrolled: number;
+    tags: string[];
+    progress: number;
+    xp: number;
+    thumbnail: string;
+  }>;
+  totalCourses: number;
+}) {
+  const firstPage = allCourses.slice(0, PAGE_SIZE);
+  let initialCards: CourseCardData[];
+  try {
+    const snapshots = await getAllCourseProgressSnapshots(
+      wallet,
+      firstPage.map((c) => c.slug),
+    );
+    initialCards = snapshots.map((s) => toCard(s.course));
+  } catch {
+    initialCards = firstPage.map((c) => toCard({ ...c, progress: 0 }));
+  }
+
+  return (
+    <CourseCatalog initialCourses={initialCards} totalCourses={totalCourses} />
   );
 }
