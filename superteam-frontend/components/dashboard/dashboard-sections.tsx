@@ -25,6 +25,7 @@ import type { Course } from "@/lib/course-catalog";
 import type { IdentitySnapshot } from "@/lib/identity/types";
 import type { RecentActivityItem } from "@/lib/server/activity-store";
 import { ActivityHeatmap } from "@/components/activity-heatmap";
+import { CollapsibleList } from "@/components/ui/collapsible-list";
 
 // ---------------------------------------------------------------------------
 // Badge icon mappings (shared)
@@ -161,67 +162,69 @@ export function ContinueLearningList({ courses }: { courses: Course[] }) {
         {t("continueLearning")}
       </h2>
       <div className="space-y-3">
-        {inProgressCourses.map((course) => {
-          let nextLesson = null;
-          for (const mod of course.modules) {
-            for (const l of mod.lessons) {
-              if (!l.completed) {
-                nextLesson = l;
-                break;
+        <CollapsibleList pageSize={3}>
+          {inProgressCourses.map((course) => {
+            let nextLesson = null;
+            for (const mod of course.modules) {
+              for (const l of mod.lessons) {
+                if (!l.completed) {
+                  nextLesson = l;
+                  break;
+                }
               }
+              if (nextLesson) break;
             }
-            if (nextLesson) break;
-          }
-          return (
-            <div
-              key={course.slug}
-              className="rounded-xl border border-border bg-card p-5 transition-all hover:border-primary/20"
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <h3 className="text-base font-semibold text-foreground truncate">
-                      {course.title}
-                    </h3>
-                    <Badge
-                      variant="outline"
-                      className="text-[10px] border-border text-muted-foreground shrink-0"
-                    >
-                      {course.difficulty}
-                    </Badge>
+            return (
+              <div
+                key={course.slug}
+                className="rounded-xl border border-border bg-card p-5 transition-all hover:border-primary/20"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="text-base font-semibold text-foreground truncate">
+                        {course.title}
+                      </h3>
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] border-border text-muted-foreground shrink-0"
+                      >
+                        {course.difficulty}
+                      </Badge>
+                    </div>
+                    {nextLesson && (
+                      <p className="text-sm text-muted-foreground">
+                        Next: {nextLesson.title}
+                      </p>
+                    )}
+                    <div className="flex items-center gap-2 mt-3">
+                      <Progress
+                        value={course.progress}
+                        className="h-1.5 flex-1 bg-secondary [&>div]:bg-primary"
+                      />
+                      <span className="text-xs font-medium text-primary shrink-0">
+                        {course.progress}%
+                      </span>
+                    </div>
                   </div>
-                  {nextLesson && (
-                    <p className="text-sm text-muted-foreground">
-                      Next: {nextLesson.title}
-                    </p>
-                  )}
-                  <div className="flex items-center gap-2 mt-3">
-                    <Progress
-                      value={course.progress}
-                      className="h-1.5 flex-1 bg-secondary [&>div]:bg-primary"
-                    />
-                    <span className="text-xs font-medium text-primary shrink-0">
-                      {course.progress}%
-                    </span>
-                  </div>
-                </div>
-                <Link
-                  href={`/courses/${course.slug}/lessons/${
-                    nextLesson?.id || "1-1"
-                  }`}
-                >
-                  <Button
-                    size="sm"
-                    className="bg-primary text-primary-foreground hover:bg-primary/90 gap-1 shrink-0"
+                  <Link
+                    href={`/courses/${course.slug}/lessons/${
+                      nextLesson?.id || "1-1"
+                    }`}
                   >
-                    {t("resume")}
-                    <ArrowRight className="h-3.5 w-3.5" />
-                  </Button>
-                </Link>
+                    <Button
+                      size="sm"
+                      className="bg-primary text-primary-foreground hover:bg-primary/90 gap-1 shrink-0"
+                    >
+                      {t("resume")}
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </Button>
+                  </Link>
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </CollapsibleList>
       </div>
     </section>
   );
@@ -384,45 +387,47 @@ export function DashboardRecentActivity({
         {t("recentActivity")}
       </h2>
       <div className="rounded-xl border border-border bg-card overflow-hidden">
-        <div className="divide-y divide-border max-h-[400px] overflow-y-auto">
+        <div className="divide-y divide-border">
           {recentActivity.length === 0 ? (
             <p className="px-4 py-6 text-sm text-muted-foreground text-center">
               {t("noActivity")}
             </p>
           ) : (
-            recentActivity.map((activity, i) => (
-              <div key={i} className="flex items-start gap-3 px-4 py-3">
-                <div className="mt-0.5">
-                  {activity.type === "course" ? (
-                    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10">
-                      <Award className="h-3 w-3 text-primary" />
+            <CollapsibleList pageSize={3}>
+              {recentActivity.map((activity, i) => (
+                <div key={i} className="flex items-start gap-3 px-4 py-3">
+                  <div className="mt-0.5">
+                    {activity.type === "course" ? (
+                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10">
+                        <Award className="h-3 w-3 text-primary" />
+                      </div>
+                    ) : (
+                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-secondary">
+                        <BookOpen className="h-3 w-3 text-muted-foreground" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-foreground">{activity.text}</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      {activity.course && (
+                        <span className="text-xs text-muted-foreground truncate">
+                          {activity.course}
+                        </span>
+                      )}
+                      <span className="text-xs text-muted-foreground">
+                        {activity.time}
+                      </span>
                     </div>
-                  ) : (
-                    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-secondary">
-                      <BookOpen className="h-3 w-3 text-muted-foreground" />
-                    </div>
+                  </div>
+                  {activity.xp > 0 && (
+                    <span className="flex items-center gap-0.5 text-xs text-primary shrink-0">
+                      <Zap className="h-3 w-3" />+{activity.xp}
+                    </span>
                   )}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-foreground">{activity.text}</p>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    {activity.course && (
-                      <span className="text-xs text-muted-foreground truncate">
-                        {activity.course}
-                      </span>
-                    )}
-                    <span className="text-xs text-muted-foreground">
-                      {activity.time}
-                    </span>
-                  </div>
-                </div>
-                {activity.xp > 0 && (
-                  <span className="flex items-center gap-0.5 text-xs text-primary shrink-0">
-                    <Zap className="h-3 w-3" />+{activity.xp}
-                  </span>
-                )}
-              </div>
-            ))
+              ))}
+            </CollapsibleList>
           )}
         </div>
       </div>

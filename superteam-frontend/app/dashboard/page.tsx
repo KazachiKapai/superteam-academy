@@ -11,7 +11,6 @@ import {
 } from "@/components/dashboard/dashboard-sections";
 import { LeaderboardWidget } from "@/components/dashboard/leaderboard-widget";
 import {
-  StatsRowSkeleton,
   CoursesListSkeleton,
   HeatmapSkeleton,
   RecommendedSkeleton,
@@ -43,17 +42,16 @@ export default async function DashboardPage() {
   return (
     <div className="min-h-screen bg-background">
       <main className="mx-auto max-w-7xl px-4 py-8 lg:px-6 lg:py-12">
-        <Suspense fallback={<StatsRowSkeleton />}>
-          <WelcomeAndStats user={user} />
-        </Suspense>
+        {/* Await header before streaming — guarantees it renders first */}
+        <WelcomeAndStats user={user} />
 
         <div className="grid gap-8 lg:grid-cols-3">
           <div className="lg:col-span-2 space-y-8">
-            <Suspense fallback={<CoursesListSkeleton />}>
-              <ContinueLearningSection wallet={user.walletAddress} />
-            </Suspense>
             <Suspense fallback={<HeatmapSkeleton />}>
               <ActivityHeatmapSection wallet={user.walletAddress} />
+            </Suspense>
+            <Suspense fallback={<CoursesListSkeleton />}>
+              <ContinueLearningSection wallet={user.walletAddress} />
             </Suspense>
             <Suspense fallback={<RecommendedSkeleton />}>
               <RecommendedCoursesSection wallet={user.walletAddress} />

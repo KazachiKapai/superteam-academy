@@ -17,6 +17,7 @@ import { ActivityHeatmap } from "@/components/activity-heatmap";
 import { ShareButton } from "@/components/profile/ShareButton";
 import { SkillsRadar } from "@/components/profile/SkillsRadar";
 import { VisibilityToggle } from "@/components/profile/VisibilityToggle";
+import { CollapsibleList } from "@/components/ui/collapsible-list";
 import type { AuthenticatedUser } from "@/lib/server/auth-adapter";
 import type { Course } from "@/lib/course-catalog";
 import type { IdentitySnapshot } from "@/lib/identity/types";
@@ -172,13 +173,15 @@ export async function CompletedCoursesSection({ wallet }: { wallet: string }) {
             {t("noCompletedCourses")}
           </p>
         ) : (
-          completedCourses.map((course) => (
-            <CourseRow
-              key={course.slug}
-              course={course}
-              progressLabel={tCatalog("progress")}
-            />
-          ))
+          <CollapsibleList pageSize={3}>
+            {completedCourses.map((course) => (
+              <CourseRow
+                key={course.slug}
+                course={course}
+                progressLabel={tCatalog("progress")}
+              />
+            ))}
+          </CollapsibleList>
         )}
         <Link
           href="/courses"
@@ -329,32 +332,34 @@ export async function CredentialsSection({
         {creds.length === 0 ? (
           <p className="text-sm text-muted-foreground">{t("noCredentials")}</p>
         ) : (
-          creds.map((cred) => (
-            <div
-              key={cred.id}
-              className="rounded-lg border border-border bg-background/40 p-3"
-            >
-              <p className="font-medium text-foreground">{cred.course}</p>
-              <div className="mt-1 space-y-1 text-xs text-muted-foreground">
-                <p>
-                  {t("mint")} {shortAddress(cred.mintAddress)}
-                </p>
-                <p>
-                  {t("issued")} {cred.date}
-                </p>
+          <CollapsibleList pageSize={3}>
+            {creds.map((cred) => (
+              <div
+                key={cred.id}
+                className="rounded-lg border border-border bg-background/40 p-3"
+              >
+                <p className="font-medium text-foreground">{cred.course}</p>
+                <div className="mt-1 space-y-1 text-xs text-muted-foreground">
+                  <p>
+                    {t("mint")} {shortAddress(cred.mintAddress)}
+                  </p>
+                  <p>
+                    {t("issued")} {cred.date}
+                  </p>
+                </div>
+                <Link href={`/certificates/${cred.id}`}>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="mt-2 h-7 px-2 text-primary"
+                  >
+                    {t("verify")}
+                    <ExternalLink className="ml-1 h-3.5 w-3.5" />
+                  </Button>
+                </Link>
               </div>
-              <Link href={`/certificates/${cred.id}`}>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="mt-2 h-7 px-2 text-primary"
-                >
-                  {t("verify")}
-                  <ExternalLink className="ml-1 h-3.5 w-3.5" />
-                </Button>
-              </Link>
-            </div>
-          ))
+            ))}
+          </CollapsibleList>
         )}
       </CardContent>
     </Card>
