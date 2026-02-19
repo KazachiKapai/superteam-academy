@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { refreshIdentitySnapshot } from "@/hooks/use-identity-snapshot";
 import {
   ArrowLeft,
   ArrowRight,
@@ -142,6 +143,7 @@ export function LessonView({
       };
     },
     onSuccess: (result) => {
+      refreshIdentitySnapshot();
       const nextPath = nextLesson
         ? `/courses/${course.slug}/lessons/${nextLesson.id}`
         : `/courses/${course.slug}`;

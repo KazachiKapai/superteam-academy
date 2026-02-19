@@ -38,7 +38,7 @@ function EntryRow({
   return (
     <TableRow
       className={
-        isMe ? "bg-yellow-400/10 border-b-gray-800" : "border-b-gray-800"
+        isMe ? "bg-yellow-400/10 border-b-border" : "border-b-border"
       }
     >
       <TableCell className="font-bold">#{entry.rank}</TableCell>
@@ -125,7 +125,7 @@ export default function LeaderboardPage({
     : false;
 
   return (
-    <div className="container max-w-7xl mx-auto py-8 text-white">
+    <div className="container max-w-7xl mx-auto py-8 text-foreground">
       <div className="text-center mb-8">
         <h1 className="text-3xl font-bold">{t("title")}</h1>
         <p className="text-muted-foreground mt-2 text-sm">{t("subtitle")}</p>
@@ -150,14 +150,14 @@ export default function LeaderboardPage({
           ) : (
             <Table>
               <TableHeader>
-                <TableRow className="border-b-gray-800">
-                  <TableHead className="text-white">{t("rank")}</TableHead>
-                  <TableHead className="text-white">{t("name")}</TableHead>
-                  <TableHead className="text-white">{t("xp")}</TableHead>
-                  <TableHead className="text-white">
+                <TableRow className="border-b-border">
+                  <TableHead className="text-foreground">{t("rank")}</TableHead>
+                  <TableHead className="text-foreground">{t("name")}</TableHead>
+                  <TableHead className="text-foreground">{t("xp")}</TableHead>
+                  <TableHead className="text-foreground">
                     {t("levelLabel")}
                   </TableHead>
-                  <TableHead className="text-white">{t("streak")}</TableHead>
+                  <TableHead className="text-foreground">{t("streak")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
